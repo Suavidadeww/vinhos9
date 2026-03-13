@@ -2614,7 +2614,7 @@ export default function App() {
                 subtitle="Você também pode gostar"
                 accentColor="#e8b4b4"
                 autoPlay={true}
-                visibleDesktop={6}
+                visibleDesktop={4}
                 onSelect={(wine) => { setSelectedWine(wine); window.scrollTo({ top: 0, behavior: "smooth" }); }}
               />
             )}
@@ -2628,7 +2628,7 @@ export default function App() {
                   subtitle="Não perca"
                   accentColor="#fbbf24"
                   autoPlay={true}
-                  visibleDesktop={6}
+                  visibleDesktop={4}
                   onSelect={(wine) => { setSelectedWine(wine); window.scrollTo({ top: 0, behavior: "smooth" }); }}
                 />
               </div>
