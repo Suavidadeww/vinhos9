@@ -1426,18 +1426,19 @@ export default function App() {
 
     const saved = { ...r[0], promoPrice: r[0].promo_price, costPrice: r[0].cost_price, keywords: r[0].keywords || "", harmonization: r[0].harmonization || "", img: null };
 
-    // 2. Se tem imagem, faz upload para Storage e atualiza a linha
+    // 2. Se tem imagem, faz upload para Storage e atualiza só o campo img
     if (wine.img) {
       showToast("Enviando imagem…");
       const imgUrl = await supaUploadImage(wine.img, saved.id, supaCfg);
       if (imgUrl) {
-        await supa.wines.update({ id: saved.id, img: imgUrl }, supaCfg);
+        // PATCH só o campo img usando filtro correto
+        await supaFetch("wines", "PATCH", { img: imgUrl }, `id=eq.${saved.id}`, supaCfg);
         saved.img = imgUrl;
+        showToast("Vinho e imagem salvos! ✅");
       } else {
-        // Fallback: salva base64 no localStorage se Storage falhar
         saveImgLocal(saved.id, wine.img);
         saved.img = wine.img;
-        showToast("Imagem salva localmente (configure o Storage no Supabase para salvar online).", "error");
+        showToast("Vinho salvo! Imagem em modo local (verifique o bucket Storage).", "error");
       }
     }
     return saved;
@@ -1702,19 +1703,18 @@ export default function App() {
   };
 
   // 📥 Import CSV (ADM)
-  const importCSV = (file) => {
+  const importCSV = async (file) => {
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
         const lines = e.target.result.split("\n").filter(Boolean);
         const headers = lines[0].split(",").map(h => h.replace(/"/g,"").trim());
-        const imported = lines.slice(1).map((line, idx) => {
+        const parsed = lines.slice(1).map((line, idx) => {
           const vals = line.match(/(".*?"|[^,]+)/g) || [];
           const obj = {};
           headers.forEach((h, i) => { obj[h] = (vals[i] || "").replace(/^"|"$/g,"").trim(); });
           return {
             ...obj,
-            id: Date.now() + idx,
             price: +obj.price || 0,
             costPrice: +obj.costPrice || 0,
             promoPrice: obj.promoPrice && +obj.promoPrice > 0 ? +obj.promoPrice : null,
@@ -1724,11 +1724,24 @@ export default function App() {
             sales: +obj.sales || 0,
             img: null,
             category: obj.category || "Tinto",
+            description: obj.description || "",
+            keywords: obj.keywords || "",
+            harmonization: obj.harmonization || "",
           };
         }).filter(w => w.name && w.price > 0);
-        setWines(prev => [...prev, ...imported]);
-        showToast(`✅ ${imported.length} vinhos importados via CSV!`);
-      } catch {
+
+        if (parsed.length === 0) { showToast("Nenhum vinho válido encontrado no CSV.", "error"); return; }
+
+        showToast(`Importando ${parsed.length} vinhos para o banco…`);
+        const saved = [];
+        for (const wine of parsed) {
+          const result = await dbAddWine(wine);
+          if (result) saved.push(result);
+        }
+        setWines(prev => [...prev, ...saved]);
+        showToast(`✅ ${saved.length} de ${parsed.length} vinhos importados e salvos no banco!`);
+      } catch (err) {
+        console.error(err);
         showToast("Erro ao ler o CSV. Verifique o formato.", "error");
       }
     };
