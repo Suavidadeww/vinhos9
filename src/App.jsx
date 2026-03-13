@@ -1228,7 +1228,338 @@ using (bucket_id = 'wines');`;
   );
 };
 
+// ─── Painel Cupons ────────────────────────────────────────────────────────────
+const CuponsPanel = ({ customCoupons, saveCoupons, showToast }) => {
+  const [newCode, setNewCode] = useState("");
+  const [newPct, setNewPct] = useState("");
+  const addCoupon = () => {
+    const code = newCode.toUpperCase().trim();
+    if (!code || !newPct || +newPct <= 0 || +newPct > 100) return showToast("Preencha código e percentual válido.", "error");
+    saveCoupons({ ...customCoupons, [code]: +newPct });
+    setNewCode(""); setNewPct(""); showToast(`Cupom ${code} criado! ✅`);
+  };
+  return (
+    <div style={{ maxWidth: 600 }}>
+      <h1 style={{ fontSize: 24, marginBottom: 5 }}>🎁 Gerenciar Cupons</h1>
+      <p style={{ color: "#7a6a6a", fontSize: 13, marginBottom: 24 }}>Crie e remova cupons de desconto para seus clientes.</p>
+      <div style={{ background: "linear-gradient(145deg,#1a1410,#120e0c)", border: "1px solid #2a1f1f", borderRadius: 10, padding: 22, marginBottom: 20 }}>
+        <div style={{ fontSize: 12, letterSpacing: 2, color: "#a09080", textTransform: "uppercase", marginBottom: 16 }}>Criar Novo Cupom</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: 12, alignItems: "end" }}>
+          <div>
+            <label style={{ display: "block", fontSize: 11, color: "#5a4a4a", letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>Código</label>
+            <input value={newCode} onChange={e => setNewCode(e.target.value.toUpperCase())} placeholder="Ex: NATAL20"
+              style={{ width: "100%", background: "#0c0a09", border: "1px solid #2a1f1f", borderRadius: 4, padding: "10px 12px", color: "#fbbf24", fontSize: 14, fontFamily: "monospace", letterSpacing: 2, boxSizing: "border-box" }} />
+          </div>
+          <div>
+            <label style={{ display: "block", fontSize: 11, color: "#5a4a4a", letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>Desconto (%)</label>
+            <input type="number" value={newPct} onChange={e => setNewPct(e.target.value)} placeholder="Ex: 15" min="1" max="100"
+              style={{ width: "100%", background: "#0c0a09", border: "1px solid #2a1f1f", borderRadius: 4, padding: "10px 12px", color: "#4ade80", fontSize: 14, fontFamily: "Georgia,serif", boxSizing: "border-box" }} />
+          </div>
+          <button onClick={addCoupon} style={{ padding: "10px 18px", background: "#8b2c2c", border: "none", borderRadius: 4, color: "#fff", cursor: "pointer", fontSize: 13, fontFamily: "Georgia,serif" }}>+ Adicionar</button>
+        </div>
+      </div>
+      <div style={{ background: "linear-gradient(145deg,#1a1410,#120e0c)", border: "1px solid #2a1f1f", borderRadius: 10, padding: 22 }}>
+        <div style={{ fontSize: 12, letterSpacing: 2, color: "#a09080", textTransform: "uppercase", marginBottom: 16 }}>Cupons Ativos ({Object.keys(customCoupons).length})</div>
+        {Object.entries(customCoupons).map(([code, pct]) => (
+          <div key={code} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 0", borderBottom: "1px solid #1a1410" }}>
+            <div style={{ background: "#120e0c", border: "1px dashed #8b2c2c", borderRadius: 6, padding: "6px 16px", minWidth: 120 }}>
+              <span style={{ fontSize: 15, letterSpacing: 3, color: "#fbbf24", fontWeight: "bold" }}>{code}</span>
+            </div>
+            <div style={{ flex: 1, fontSize: 14, color: "#4ade80", fontWeight: "bold" }}>{pct}% OFF</div>
+            <button onClick={() => { const u = { ...customCoupons }; delete u[code]; saveCoupons(u); showToast(`Cupom ${code} removido.`, "error"); }}
+              style={{ background: "none", border: "1px solid #3a1f1f", color: "#ef4444", padding: "5px 12px", borderRadius: 4, cursor: "pointer", fontSize: 12, fontFamily: "Georgia,serif" }}>🗑 Remover</button>
+          </div>
+        ))}
+        {Object.keys(customCoupons).length === 0 && <p style={{ fontSize: 13, color: "#3a2a2a" }}>Nenhum cupom criado ainda.</p>}
+      </div>
+    </div>
+  );
+};
+
+// ─── Painel Frete ─────────────────────────────────────────────────────────────
+const FretePanel = ({ freteConfig, saveFreteConfig, showToast }) => {
+  const [editando, setEditando] = useState(null);
+  const [form, setForm] = useState({ id: "", nome: "", icon: "📦", prazo: "", base: "", minValue: "" });
+  const opcoes = freteConfig.opcoes || [];
+  const startEdit = (op) => { setEditando(op.id); setForm({ ...op, base: String(op.base), minValue: op.minValue != null ? String(op.minValue) : "" }); };
+  const saveEdit = () => {
+    const updated = opcoes.map(o => o.id === editando ? { ...form, base: +form.base || 0, minValue: form.minValue !== "" ? +form.minValue : undefined } : o);
+    saveFreteConfig({ opcoes: updated }); setEditando(null); showToast("Frete atualizado! ✅");
+  };
+  const addOpcao = () => {
+    const nova = { id: `frete_${Date.now()}`, nome: "Nova Opção", icon: "🚚", prazo: "7 dias úteis", base: 0 };
+    const newOpcoes = [...opcoes, nova];
+    saveFreteConfig({ opcoes: newOpcoes });
+    setEditando(nova.id);
+    setForm({ ...nova, base: "0", minValue: "" });
+  };
+  return (
+    <div style={{ maxWidth: 700 }}>
+      <h1 style={{ fontSize: 24, marginBottom: 5 }}>🚚 Configurar Frete</h1>
+      <p style={{ color: "#7a6a6a", fontSize: 13, marginBottom: 24 }}>Gerencie as opções de entrega exibidas aos clientes.</p>
+      {opcoes.map(op => (
+        <div key={op.id} style={{ background: "linear-gradient(145deg,#1a1410,#120e0c)", border: `1px solid ${editando === op.id ? "#8b2c2c" : "#2a1f1f"}`, borderRadius: 10, padding: 20, marginBottom: 14 }}>
+          {editando === op.id ? (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              {[["nome","Nome (ex: PAC)"],["icon","Ícone (emoji)"],["prazo","Prazo (ex: 5 dias úteis)"],["base","Preço base (R$)"]].map(([f, l]) => (
+                <div key={f}>
+                  <label style={{ display: "block", fontSize: 11, color: "#5a4a4a", letterSpacing: 1, textTransform: "uppercase", marginBottom: 5 }}>{l}</label>
+                  <input value={form[f] ?? ""} onChange={e => setForm(p => ({ ...p, [f]: e.target.value }))}
+                    style={{ width: "100%", background: "#0c0a09", border: "1px solid #2a1f1f", borderRadius: 4, padding: "9px 11px", color: "#f5f0e8", fontSize: 14, fontFamily: "Georgia,serif", boxSizing: "border-box" }} />
+                </div>
+              ))}
+              <div style={{ gridColumn: "1/-1" }}>
+                <label style={{ display: "block", fontSize: 11, color: "#5a4a4a", letterSpacing: 1, textTransform: "uppercase", marginBottom: 5 }}>Valor mínimo para frete grátis (R$) — deixe vazio se não aplicar</label>
+                <input type="number" value={form.minValue ?? ""} onChange={e => setForm(p => ({ ...p, minValue: e.target.value }))}
+                  style={{ width: "100%", background: "#0c0a09", border: "1px solid #2a1f1f", borderRadius: 4, padding: "9px 11px", color: "#fbbf24", fontSize: 14, fontFamily: "Georgia,serif", boxSizing: "border-box" }} />
+              </div>
+              <div style={{ gridColumn: "1/-1", display: "flex", gap: 10 }}>
+                <button onClick={saveEdit} style={{ padding: "9px 20px", background: "#8b2c2c", border: "none", borderRadius: 4, color: "#fff", cursor: "pointer", fontSize: 13, fontFamily: "Georgia,serif" }}>💾 Salvar</button>
+                <button onClick={() => setEditando(null)} style={{ padding: "9px 16px", background: "none", border: "1px solid #2a1f1f", borderRadius: 4, color: "#7a6a6a", cursor: "pointer", fontSize: 13, fontFamily: "Georgia,serif" }}>Cancelar</button>
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+              <div style={{ fontSize: 28 }}>{op.icon}</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 15, color: "#f5f0e8", fontWeight: "bold" }}>{op.nome}</div>
+                <div style={{ fontSize: 12, color: "#7a6a6a" }}>{op.prazo} · {+op.base === 0 ? <span style={{ color: "#4ade80" }}>Grátis</span> : `R$ ${(+op.base).toFixed(2)} base`}{op.minValue ? ` · Grátis acima de R$ ${op.minValue}` : ""}</div>
+              </div>
+              <button onClick={() => startEdit(op)} style={{ background: "none", border: "1px solid #2a3a2a", color: "#4ade80", padding: "6px 14px", borderRadius: 4, cursor: "pointer", fontSize: 12, fontFamily: "Georgia,serif" }}>✏️ Editar</button>
+              <button onClick={() => { saveFreteConfig({ opcoes: opcoes.filter(o => o.id !== op.id) }); showToast("Opção removida.", "error"); }}
+                style={{ background: "none", border: "1px solid #3a1f1f", color: "#ef4444", padding: "6px 12px", borderRadius: 4, cursor: "pointer", fontSize: 12, fontFamily: "Georgia,serif" }}>🗑</button>
+            </div>
+          )}
+        </div>
+      ))}
+      <button onClick={addOpcao} style={{ marginTop: 8, padding: "10px 22px", background: "#1a1410", border: "1px solid #3a2f2f", borderRadius: 4, color: "#e8b4b4", cursor: "pointer", fontSize: 13, fontFamily: "Georgia,serif" }}>+ Adicionar opção de frete</button>
+    </div>
+  );
+};
+
+// ─── Painel CSV com IA ────────────────────────────────────────────────────────
+const CSVPanel = ({ importCSV, showToast }) => {
+  const csvRef = useRef(null);
+  const aiImgRef = useRef(null);
+  const [aiImg, setAiImg] = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiCSV, setAiCSV] = useState("");
+
+  const gerarCSV = async () => {
+    if (!aiImg) return showToast("Selecione uma imagem primeiro.", "error");
+    setAiLoading(true); setAiCSV("");
+    try {
+      const base64 = aiImg.split(",")[1];
+      const mime = aiImg.split(";")[0].split(":")[1];
+      const resp = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 1000,
+          messages: [{ role: "user", content: [
+            { type: "image", source: { type: "base64", media_type: mime, data: base64 } },
+            { type: "text", text: `Analise esta imagem de vinho e retorne APENAS uma linha CSV (sem cabeçalho) com os campos nesta ordem, separados por vírgula:\nname (título SEO otimizado ex: "Vinho Tinto Chileno Reserva Cabernet Sauvignon 2021"),origin,region,year,costPrice (vazio),price (estimativa em reais),promoPrice (vazio),stock (10),category (Tinto/Branco/Espumante/Rosé),alcohol,grapes,description (descrição SEO),keywords (palavras separadas por ;),harmonization (sugestões separadas por ,),rating (4.5),sales (0)\nResponda SOMENTE a linha CSV sem explicações nem markdown.` }
+          ]}]
+        })
+      });
+      const data = await resp.json();
+      const csv = data.content?.find(b => b.type === "text")?.text?.trim() || "";
+      setAiCSV(csv);
+      showToast("CSV gerado pela IA! ✅");
+    } catch { showToast("Erro ao chamar a IA.", "error"); }
+    setAiLoading(false);
+  };
+
+  const baixarCSV = (linhas) => {
+    const header = "name,origin,region,year,costPrice,price,promoPrice,stock,category,alcohol,grapes,description,keywords,harmonization,rating,sales\n";
+    const blob = new Blob([header + linhas + "\n"], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = "vinho-ia.csv"; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const importarDireto = async () => {
+    const header = "name,origin,region,year,costPrice,price,promoPrice,stock,category,alcohol,grapes,description,keywords,harmonization,rating,sales\n";
+    const blob = new Blob([header + aiCSV + "\n"], { type: "text/csv" });
+    const f = new File([blob], "vinho-ia.csv", { type: "text/csv" });
+    await importCSV(f);
+    setAiCSV(""); setAiImg(null);
+  };
+
+  return (
+    <div style={{ maxWidth: 620 }}>
+      <h1 style={{ fontSize: 21, marginBottom: 5 }}>📥 Importar Produtos via CSV</h1>
+      <p style={{ color: "#7a6a6a", fontSize: 13, marginBottom: 24 }}>Importe vários vinhos de uma vez. Imagens podem ser adicionadas após a importação.</p>
+
+      <div style={{ background: "linear-gradient(145deg,#1a1410,#120e0c)", border: "1px solid #2a1f1f", borderRadius: 10, padding: 22, marginBottom: 20 }}>
+        <div style={{ fontSize: 11, letterSpacing: 2, color: "#a09080", textTransform: "uppercase", marginBottom: 12 }}>📋 Template CSV</div>
+        <div style={{ background: "#0c0a09", borderRadius: 6, padding: "12px 14px", fontSize: 11, color: "#5a4a4a", fontFamily: "monospace", marginBottom: 14, overflowX: "auto", whiteSpace: "nowrap" }}>
+          name,origin,region,year,costPrice,price,promoPrice,stock,category,alcohol,grapes,description,keywords,harmonization,rating,sales
+        </div>
+        <button onClick={() => {
+          const header = "name,origin,region,year,costPrice,price,promoPrice,stock,category,alcohol,grapes,description,keywords,harmonization,rating,sales\n";
+          const example = ',Exemplo Vinho,Brasil,Serra Gaúcha,2022,80,149,,10,Tinto,13%,Merlot,"Vinho encorpado.",4.5,0\n';
+          const blob = new Blob([header + example], { type: "text/csv" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a"); a.href = url; a.download = "template-vinhos9.csv"; a.click();
+          URL.revokeObjectURL(url);
+        }} style={{ padding: "9px 18px", background: "#1a1410", border: "1px solid #3a2f2f", color: "#e8b4b4", borderRadius: 4, cursor: "pointer", fontSize: 11, fontFamily: "Georgia,serif" }}>
+          ⬇ Baixar Template CSV
+        </button>
+      </div>
+
+      <div style={{ background: "linear-gradient(145deg,#1a1410,#120e0c)", border: "2px dashed #2a1f1f", borderRadius: 10, padding: 32, textAlign: "center", marginBottom: 20 }}
+        onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = "#8b2c2c"; }}
+        onDragLeave={e => { e.currentTarget.style.borderColor = "#2a1f1f"; }}
+        onDrop={e => { e.preventDefault(); e.currentTarget.style.borderColor = "#2a1f1f"; const f = e.dataTransfer.files[0]; if (f?.name.endsWith(".csv")) importCSV(f); else showToast("Envie um arquivo .csv", "error"); }}>
+        <div style={{ fontSize: 36, marginBottom: 12 }}>📄</div>
+        <p style={{ fontSize: 13, color: "#a09080", marginBottom: 16 }}>Arraste o CSV aqui ou clique para selecionar</p>
+        <input type="file" accept=".csv" style={{ display: "none" }} ref={csvRef} onChange={e => { const f = e.target.files?.[0]; if (f) importCSV(f); e.target.value = ""; }} />
+        <button onClick={() => csvRef.current?.click()} style={{ padding: "10px 24px", background: "#8b2c2c", border: "none", borderRadius: 4, color: "#fff", cursor: "pointer", fontSize: 12, fontFamily: "Georgia,serif", letterSpacing: 1 }}>
+          📂 Selecionar Arquivo CSV
+        </button>
+      </div>
+
+      <div style={{ background: "linear-gradient(145deg,#1a1410,#120e0c)", border: "1px solid #3a2a4a", borderRadius: 10, padding: 22 }}>
+        <div style={{ fontSize: 12, letterSpacing: 2, color: "#c084fc", textTransform: "uppercase", marginBottom: 6 }}>🤖 Gerar CSV com Inteligência Artificial</div>
+        <p style={{ fontSize: 13, color: "#7a6a6a", lineHeight: 1.7, marginBottom: 16 }}>Envie a foto de um vinho e a IA gera o CSV com <strong style={{ color: "#e8b4b4" }}>título SEO otimizado</strong> automaticamente.</p>
+        <input type="file" accept="image/*" ref={aiImgRef} style={{ display: "none" }} onChange={e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = ev => setAiImg(ev.target.result); r.readAsDataURL(f); }} />
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-start", marginBottom: 14 }}>
+          <div>
+            <button onClick={() => aiImgRef.current?.click()} style={{ padding: "10px 18px", background: "#1a1410", border: "1px solid #3a2f4a", color: "#c084fc", borderRadius: 4, cursor: "pointer", fontSize: 13, fontFamily: "Georgia,serif" }}>🖼 Selecionar Imagem</button>
+            {aiImg && <div style={{ marginTop: 10 }}><img src={aiImg} alt="preview" style={{ width: 90, height: 90, objectFit: "cover", borderRadius: 8, border: "1px solid #3a2a4a" }} /></div>}
+          </div>
+          <button onClick={gerarCSV} disabled={!aiImg || aiLoading}
+            style={{ padding: "10px 22px", background: aiLoading ? "#2a1f2a" : "#6d28d9", border: "none", borderRadius: 4, color: "#fff", cursor: aiImg && !aiLoading ? "pointer" : "not-allowed", fontSize: 13, fontFamily: "Georgia,serif", letterSpacing: 1 }}>
+            {aiLoading ? "⏳ Analisando…" : "✨ Gerar CSV com IA"}
+          </button>
+        </div>
+        {aiCSV && (
+          <div>
+            <div style={{ fontSize: 11, color: "#5a4a4a", marginBottom: 6, letterSpacing: 1, textTransform: "uppercase" }}>CSV gerado:</div>
+            <div style={{ background: "#0c0a09", borderRadius: 6, padding: "10px 14px", fontSize: 11, color: "#4ade80", fontFamily: "monospace", marginBottom: 12, wordBreak: "break-all", lineHeight: 1.6 }}>{aiCSV}</div>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={() => baixarCSV(aiCSV)} style={{ padding: "9px 18px", background: "#1a3a1a", border: "1px solid #4ade80", borderRadius: 4, color: "#4ade80", cursor: "pointer", fontSize: 13, fontFamily: "Georgia,serif" }}>⬇ Baixar CSV</button>
+              <button onClick={importarDireto} style={{ padding: "9px 18px", background: "#8b2c2c", border: "none", borderRadius: 4, color: "#fff", cursor: "pointer", fontSize: 13, fontFamily: "Georgia,serif" }}>📥 Importar direto</button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // ─── Painel Segurança (componente próprio para evitar hook em IIFE) ───────────
+// ─── Painel Galeria de Imagens ────────────────────────────────────────────────
+const GaleriaPanel = ({ supaCfg, wines, setWines, supaFetch, showToast }) => {
+  const [imgs, setImgs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(null);
+
+  const load = async () => {
+    setLoading(true);
+    if (!supaCfg) { setLoading(false); return; }
+    try {
+      const c = supaCfg;
+      const r = await fetch(`${c.url}/storage/v1/object/list/wines`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "apikey": c.key, "Authorization": `Bearer ${c.key}` },
+        body: JSON.stringify({ prefix: "", limit: 200, offset: 0 })
+      });
+      const data = await r.json();
+      if (Array.isArray(data)) {
+        const list = data.filter(f => f.name && !f.name.endsWith("/")).map(f => ({
+          name: f.name,
+          url: `${c.url}/storage/v1/object/public/wines/${f.name}`,
+          size: f.metadata?.size || 0,
+        }));
+        setImgs(list.map(img => {
+          const wine = wines.find(w => w.img && w.img.includes(img.name));
+          return { ...img, wine };
+        }));
+      } else { setImgs([]); }
+    } catch { setImgs([]); }
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const handleDelete = async (img) => {
+    if (!confirm(`Deletar imagem "${img.name}"?\n${img.wine ? `⚠️ Associada ao vinho: ${img.wine.name}` : "Não está associada a nenhum vinho."}`)) return;
+    setDeleting(img.name);
+    try {
+      const c = supaCfg;
+      const r = await fetch(`${c.url}/storage/v1/object/wines/${img.name}`, {
+        method: "DELETE",
+        headers: { "apikey": c.key, "Authorization": `Bearer ${c.key}` }
+      });
+      if (r.ok) {
+        if (img.wine) {
+          await supaFetch("wines", "PATCH", { img: null }, `id=eq.${img.wine.id}`, supaCfg);
+          setWines(prev => prev.map(w => w.id === img.wine.id ? { ...w, img: null } : w));
+        }
+        setImgs(prev => prev.filter(i => i.name !== img.name));
+        showToast("Imagem deletada! ✅");
+      } else { showToast("Erro ao deletar imagem.", "error"); }
+    } catch { showToast("Erro ao deletar imagem.", "error"); }
+    setDeleting(null);
+  };
+
+  const fmtSize = (b) => b > 1024*1024 ? `${(b/1024/1024).toFixed(1)} MB` : `${Math.round(b/1024)} KB`;
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
+        <div>
+          <h1 style={{ fontSize: 24, marginBottom: 4 }}>🖼 Galeria de Imagens</h1>
+          <p style={{ color: "#7a6a6a", fontSize: 13 }}>{loading ? "Carregando…" : `${imgs.length} imagem${imgs.length !== 1 ? "s" : ""} no Supabase Storage`}</p>
+        </div>
+        <button onClick={load} style={{ padding: "8px 16px", background: "#1a1410", border: "1px solid #3a2f2f", borderRadius: 4, color: "#a09080", cursor: "pointer", fontSize: 13, fontFamily: "Georgia,serif" }}>🔄 Recarregar</button>
+      </div>
+      {!supaCfg && <div style={{ padding: 20, background: "rgba(139,44,44,.08)", border: "1px solid rgba(139,44,44,.3)", borderRadius: 8, color: "#8b6060", fontSize: 13 }}>⚠️ Configure o Supabase primeiro na aba Banco de Dados.</div>}
+      {loading && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 16 }}>
+          {[...Array(6)].map((_, i) => <div key={i} style={{ background: "#1a1410", borderRadius: 10, height: 220 }} />)}
+        </div>
+      )}
+      {!loading && imgs.length === 0 && supaCfg && (
+        <div style={{ textAlign: "center", padding: 60, color: "#3a2a2a", fontSize: 14 }}>
+          <div style={{ fontSize: 48, marginBottom: 12 }}>🖼</div>
+          Nenhuma imagem no Storage.<br />
+          <span style={{ fontSize: 12 }}>Cadastre vinhos com foto para vê-las aqui.</span>
+        </div>
+      )}
+      {!loading && imgs.length > 0 && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 16 }}>
+          {imgs.map(img => (
+            <div key={img.name} style={{ background: "linear-gradient(145deg,#1a1410,#120e0c)", border: "1px solid #2a1f1f", borderRadius: 10, overflow: "hidden", transition: "border-color .2s" }}
+              onMouseEnter={e => e.currentTarget.style.borderColor = "#8b2c2c"}
+              onMouseLeave={e => e.currentTarget.style.borderColor = "#2a1f1f"}>
+              <div style={{ position: "relative", width: "100%", height: 160, background: "#0c0a09", overflow: "hidden" }}>
+                <img src={img.url} alt={img.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.target.style.display = "none"; }} />
+                {img.wine && <div style={{ position: "absolute", top: 6, left: 6, background: "rgba(139,44,44,.85)", borderRadius: 4, padding: "2px 7px", fontSize: 10, color: "#fff" }}>🍷 Vinculada</div>}
+              </div>
+              <div style={{ padding: "10px 12px" }}>
+                <div style={{ fontSize: 11, color: "#7a6a6a", marginBottom: 4, wordBreak: "break-all", lineHeight: 1.4 }}>{img.name}</div>
+                {img.wine && <div style={{ fontSize: 11, color: "#e8b4b4", marginBottom: 4 }}>📦 {img.wine.name.slice(0, 22)}{img.wine.name.length > 22 ? "…" : ""}</div>}
+                {img.size > 0 && <div style={{ fontSize: 10, color: "#3a2a2a", marginBottom: 8 }}>{fmtSize(img.size)}</div>}
+                <div style={{ display: "flex", gap: 6 }}>
+                  <a href={img.url} target="_blank" rel="noreferrer" style={{ flex: 1, textAlign: "center", padding: "6px", background: "#1a2a3a", border: "1px solid #2a3a4a", borderRadius: 4, color: "#60a5fa", fontSize: 11, textDecoration: "none", fontFamily: "Georgia,serif" }}>🔗 Ver</a>
+                  <button onClick={() => handleDelete(img)} disabled={deleting === img.name}
+                    style={{ flex: 1, padding: "6px", background: deleting === img.name ? "#1a1410" : "#2a1010", border: "1px solid #3a1f1f", borderRadius: 4, color: deleting === img.name ? "#5a4a4a" : "#ef4444", cursor: deleting === img.name ? "not-allowed" : "pointer", fontSize: 11, fontFamily: "Georgia,serif" }}>
+                    {deleting === img.name ? "⏳" : "🗑 Del"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const SegurancaPanel = ({ showToast }) => {
   const [newUser, setNewUser] = useState("");
   const [newPass, setNewPass] = useState("");
@@ -1356,13 +1687,17 @@ export default function App() {
   const [paymentSaved, setPaymentSaved] = useState(false);
   const [exportMsg, setExportMsg] = useState("");
 
-  // 🔗 URL persistence — salva produto selecionado na URL para sobreviver ao F5
+  // 🔗 URL persistence — lê ?produto=ID e abre o produto correto (funciona com Supabase async)
+  const pendingProductId = useRef((() => { try { return new URLSearchParams(window.location.search).get("produto"); } catch { return null; } })());
+
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const pid = params.get("produto");
-    if (pid && wines.length > 0) {
-      const found = wines.find(w => String(w.id) === pid);
-      if (found) { setSelectedWine(found); setPage("store"); }
+    if (!pendingProductId.current || wines.length === 0) return;
+    const pid = pendingProductId.current;
+    const found = wines.find(w => String(w.id) === pid);
+    if (found) {
+      setSelectedWine(found);
+      setPage("store");
+      pendingProductId.current = null; // só abre uma vez
     }
   }, [wines]);
 
@@ -1400,8 +1735,8 @@ export default function App() {
       })));
       setSupaConnected(true);
     }
-    if (ordersData)  setOrders(ordersData);
-    if (reviewsData) setReviews(reviewsData.map(r => ({ ...r, wineId: r.wine_id })));
+    if (Array.isArray(ordersData))  setOrders(ordersData);
+    if (Array.isArray(reviewsData)) setReviews(reviewsData.map(r => ({ ...r, wineId: r.wine_id })));
     setDbLoading(false);
   }, []);
 
@@ -2999,12 +3334,12 @@ export default function App() {
             {adminTab === "orders" && (
               <div>
                 <h1 style={{ fontSize: 21, marginBottom: 5 }}>Pedidos</h1>
-                <p style={{ color: "#7a6a6a", fontSize: 11, marginBottom: 24 }}>{orders.length} pedidos recentes</p>
+                <p style={{ color: "#7a6a6a", fontSize: 11, marginBottom: 24 }}>{Array.isArray(orders) ? orders.length : 0} pedidos recentes</p>
                 <div style={{ background: "linear-gradient(145deg,#1a1410,#120e0c)", border: "1px solid #2a1f1f", borderRadius: 10, overflow: "auto" }}>
                   <table className="tbl" style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                     <thead><tr style={{ background: "#120e0c" }}>{["Pedido","Cliente","Vinho","Qtd","Total","Data","Status"].map((h) => <th key={h} style={{ padding: "11px 12px", textAlign: "left", fontSize: 8, letterSpacing: 2, color: "#5a4a4a", textTransform: "uppercase", borderBottom: "1px solid #2a1f1f" }}>{h}</th>)}</tr></thead>
                     <tbody>
-                      {orders.map((o, i) => (
+                      {(Array.isArray(orders) ? orders : []).map((o, i) => (
                         <tr key={o.id} style={{ borderBottom: "1px solid #1a1410", background: i % 2 === 0 ? "transparent" : "rgba(255,255,255,.01)" }}>
                           <td style={{ padding: "9px 12px", color: "#e8b4b4" }}>{o.id}</td>
                           <td style={{ padding: "9px 12px", color: "#f5f0e8" }}>{o.customer}</td>
@@ -3109,232 +3444,13 @@ export default function App() {
               </div>
             )}
             {/* 📥 Importar CSV */}
-            {adminTab === "csv" && (() => {
-              const csvRef = { current: null };
-              return (
-                <div style={{ maxWidth: 620 }}>
-                  <h1 style={{ fontSize: 21, marginBottom: 5 }}>📥 Importar Produtos via CSV</h1>
-                  <p style={{ color: "#7a6a6a", fontSize: 11, marginBottom: 24 }}>Importe vários vinhos de uma vez. Imagens devem ser adicionadas manualmente após a importação.</p>
+            {adminTab === "csv" && <CSVPanel importCSV={importCSV} showToast={showToast} />}
 
-                  {/* Template download */}
-                  <div style={{ background: "linear-gradient(145deg,#1a1410,#120e0c)", border: "1px solid #2a1f1f", borderRadius: 10, padding: 22, marginBottom: 20 }}>
-                    <div style={{ fontSize: 11, letterSpacing: 2, color: "#a09080", textTransform: "uppercase", marginBottom: 12 }}>📋 Template CSV</div>
-                    <p style={{ fontSize: 12, color: "#7a6a6a", marginBottom: 14, lineHeight: 1.7 }}>
-                      Baixe o template com os campos corretos. Preencha e importe. A coluna <strong style={{ color: "#e8b4b4" }}>img</strong> pode ser deixada vazia — você adicionará as fotos manualmente depois.
-                    </p>
-                    <div style={{ background: "#0c0a09", borderRadius: 6, padding: "12px 14px", fontSize: 11, color: "#5a4a4a", fontFamily: "monospace", marginBottom: 14, overflowX: "auto", whiteSpace: "nowrap" }}>
-                      id,name,origin,region,year,costPrice,price,promoPrice,stock,category,alcohol,grapes,desc,rating,sales
-                    </div>
-                    <button onClick={() => {
-                      const header = "id,name,origin,region,year,costPrice,price,promoPrice,stock,category,alcohol,grapes,desc,rating,sales\n";
-                      const example = ',Exemplo Vinho,Brasil,Serra Gaúcha,2022,80,149,,10,Tinto,13%,Merlot,"Vinho encorpado com notas de frutas vermelhas.",4.5,0\n';
-                      const blob = new Blob([header + example], { type: "text/csv" });
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement("a"); a.href = url; a.download = "template-vinhos9.csv"; a.click();
-                      URL.revokeObjectURL(url);
-                    }} style={{ padding: "9px 18px", background: "#1a1410", border: "1px solid #3a2f2f", color: "#e8b4b4", borderRadius: 4, cursor: "pointer", fontSize: 11, fontFamily: "Georgia,serif" }}>
-                      ⬇ Baixar Template CSV
-                    </button>
-                  </div>
-
-                  {/* Upload */}
-                  <div style={{ background: "linear-gradient(145deg,#1a1410,#120e0c)", border: "2px dashed #2a1f1f", borderRadius: 10, padding: 32, textAlign: "center" }}
-                    onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = "#8b2c2c"; }}
-                    onDragLeave={e => { e.currentTarget.style.borderColor = "#2a1f1f"; }}
-                    onDrop={e => { e.preventDefault(); e.currentTarget.style.borderColor = "#2a1f1f"; const f = e.dataTransfer.files[0]; if (f?.name.endsWith(".csv")) importCSV(f); else showToast("Envie um arquivo .csv", "error"); }}>
-                    <div style={{ fontSize: 36, marginBottom: 12 }}>📄</div>
-                    <p style={{ fontSize: 13, color: "#a09080", marginBottom: 16 }}>Arraste o arquivo CSV aqui ou clique para selecionar</p>
-                    <input type="file" accept=".csv" style={{ display: "none" }} ref={el => csvRef.current = el}
-                      onChange={e => { const f = e.target.files?.[0]; if (f) importCSV(f); e.target.value = ""; }} />
-                    <button onClick={() => csvRef.current?.click()} style={{ padding: "10px 24px", background: "#8b2c2c", border: "none", borderRadius: 4, color: "#fff", cursor: "pointer", fontSize: 12, fontFamily: "Georgia,serif", letterSpacing: 1 }}>
-                      📂 Selecionar Arquivo CSV
-                    </button>
-                  </div>
-
-                  <div style={{ marginTop: 16, padding: "12px 16px", background: "rgba(139,44,44,.06)", border: "1px solid rgba(139,44,44,.2)", borderRadius: 8, fontSize: 13, color: "#8b6060" }}>
-                    💡 <strong>Dica:</strong> Após importar, vá em <strong>Vinhos</strong> e clique em <strong>Editar</strong> para adicionar as imagens dos produtos individualmente.
-                  </div>
-
-                  {/* 🤖 IA: Gerar CSV por imagem */}
-                  {(() => {
-                    const [aiImg, setAiImg] = React.useState(null);
-                    const [aiLoading, setAiLoading] = React.useState(false);
-                    const [aiCSV, setAiCSV] = React.useState("");
-                    const aiImgRef = React.useRef();
-                    const gerarCSV = async () => {
-                      if (!aiImg) return showToast("Selecione uma imagem primeiro.", "error");
-                      setAiLoading(true); setAiCSV("");
-                      try {
-                        const base64 = aiImg.split(",")[1];
-                        const mime = aiImg.split(";")[0].split(":")[1];
-                        const resp = await fetch("https://api.anthropic.com/v1/messages", {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({
-                            model: "claude-sonnet-4-20250514",
-                            max_tokens: 1000,
-                            messages: [{
-                              role: "user",
-                              content: [
-                                { type: "image", source: { type: "base64", media_type: mime, data: base64 } },
-                                { type: "text", text: `Analise esta imagem de vinho e retorne APENAS uma linha CSV (sem cabeçalho) com os campos exatamente nesta ordem, separados por vírgula:
-name (título SEO otimizado para Google ex: "Vinho Tinto Francês Bordeaux Merlot 2020"),origin,region,year,costPrice (deixe vazio),price (estimativa em reais),promoPrice (deixe vazio),stock (deixe 10),category (Tinto/Branco/Espumante/Rosé),alcohol,grapes,description (descrição SEO detalhada),keywords (palavras-chave SEO separadas por ponto-e-vírgula),harmonization (sugestões separadas por vírgula),rating (4.5),sales (0)
-Responda SOMENTE a linha CSV, sem explicações, sem cabeçalho, sem markdown.` }
-                              ]
-                            }]
-                          })
-                        });
-                        const data = await resp.json();
-                        const csv = data.content?.find(b => b.type === "text")?.text?.trim() || "";
-                        setAiCSV(csv);
-                        showToast("CSV gerado pela IA! ✅");
-                      } catch (e) {
-                        showToast("Erro ao chamar a IA. Tente novamente.", "error");
-                      }
-                      setAiLoading(false);
-                    };
-                    const baixarCSV = () => {
-                      const header = "name,origin,region,year,costPrice,price,promoPrice,stock,category,alcohol,grapes,description,keywords,harmonization,rating,sales\n";
-                      const blob = new Blob([header + aiCSV + "\n"], { type: "text/csv" });
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement("a"); a.href = url; a.download = "vinho-ia.csv"; a.click();
-                      URL.revokeObjectURL(url);
-                    };
-                    return (
-                      <div style={{ marginTop: 24, background: "linear-gradient(145deg,#1a1410,#120e0c)", border: "1px solid #3a2a4a", borderRadius: 10, padding: 22 }}>
-                        <div style={{ fontSize: 12, letterSpacing: 2, color: "#c084fc", textTransform: "uppercase", marginBottom: 6 }}>🤖 Gerar CSV com Inteligência Artificial</div>
-                        <p style={{ fontSize: 13, color: "#7a6a6a", lineHeight: 1.7, marginBottom: 16 }}>Envie a foto de um vinho e a IA identifica automaticamente os dados e gera o CSV com <strong style={{ color: "#e8b4b4" }}>título SEO otimizado</strong>.</p>
-                        <input type="file" accept="image/*" ref={aiImgRef} style={{ display: "none" }} onChange={e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = ev => setAiImg(ev.target.result); r.readAsDataURL(f); }} />
-                        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-start" }}>
-                          <div>
-                            <button onClick={() => aiImgRef.current?.click()} style={{ padding: "10px 18px", background: "#1a1410", border: "1px solid #3a2f4a", color: "#c084fc", borderRadius: 4, cursor: "pointer", fontSize: 13, fontFamily: "Georgia,serif" }}>🖼 Selecionar Imagem</button>
-                            {aiImg && <div style={{ marginTop: 10 }}><img src={aiImg} alt="preview" style={{ width: 100, height: 100, objectFit: "cover", borderRadius: 8, border: "1px solid #3a2a4a" }} /></div>}
-                          </div>
-                          <button onClick={gerarCSV} disabled={!aiImg || aiLoading} style={{ padding: "10px 22px", background: aiLoading ? "#2a1f2a" : "#6d28d9", border: "none", borderRadius: 4, color: "#fff", cursor: aiImg && !aiLoading ? "pointer" : "not-allowed", fontSize: 13, fontFamily: "Georgia,serif", letterSpacing: 1 }}>
-                            {aiLoading ? "⏳ Analisando..." : "✨ Gerar CSV com IA"}
-                          </button>
-                        </div>
-                        {aiCSV && (
-                          <div style={{ marginTop: 16 }}>
-                            <div style={{ fontSize: 11, color: "#5a4a4a", marginBottom: 6, letterSpacing: 1, textTransform: "uppercase" }}>CSV gerado:</div>
-                            <div style={{ background: "#0c0a09", borderRadius: 6, padding: "10px 14px", fontSize: 11, color: "#4ade80", fontFamily: "monospace", marginBottom: 12, wordBreak: "break-all", lineHeight: 1.6 }}>{aiCSV}</div>
-                            <div style={{ display: "flex", gap: 10 }}>
-                              <button onClick={baixarCSV} style={{ padding: "9px 18px", background: "#1a3a1a", border: "1px solid #4ade80", borderRadius: 4, color: "#4ade80", cursor: "pointer", fontSize: 13, fontFamily: "Georgia,serif" }}>⬇ Baixar CSV</button>
-                              <button onClick={async () => { const header = "name,origin,region,year,costPrice,price,promoPrice,stock,category,alcohol,grapes,description,keywords,harmonization,rating,sales\n"; const blob = new Blob([header + aiCSV + "\n"], { type: "text/csv" }); const f = new File([blob], "vinho-ia.csv"); await importCSV(f); setAiCSV(""); setAiImg(null); }} style={{ padding: "9px 18px", background: "#8b2c2c", border: "none", borderRadius: 4, color: "#fff", cursor: "pointer", fontSize: 13, fontFamily: "Georgia,serif" }}>📥 Importar direto</button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })()}
-                </div>
-              );
-            })()}
-
-            {/* 💳 Gateway de Pagamento */}
             {/* 🎁 Cupons */}
-            {adminTab === "cupons" && (() => {
-              const [newCode, setNewCode] = React.useState("");
-              const [newPct, setNewPct] = React.useState("");
-              const addCoupon = () => {
-                const code = newCode.toUpperCase().trim();
-                if (!code || !newPct || +newPct <= 0 || +newPct > 100) return showToast("Preencha código e percentual válido.", "error");
-                saveCoupons({ ...customCoupons, [code]: +newPct });
-                setNewCode(""); setNewPct(""); showToast(`Cupom ${code} criado! ✅`);
-              };
-              return (
-                <div style={{ maxWidth: 600 }}>
-                  <h1 style={{ fontSize: 24, marginBottom: 5 }}>🎁 Gerenciar Cupons</h1>
-                  <p style={{ color: "#7a6a6a", fontSize: 13, marginBottom: 24 }}>Crie e edite cupons de desconto para seus clientes.</p>
-                  <div style={{ background: "linear-gradient(145deg,#1a1410,#120e0c)", border: "1px solid #2a1f1f", borderRadius: 10, padding: 22, marginBottom: 20 }}>
-                    <div style={{ fontSize: 12, letterSpacing: 2, color: "#a09080", textTransform: "uppercase", marginBottom: 16 }}>Criar Novo Cupom</div>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: 12, alignItems: "end" }}>
-                      <div>
-                        <label style={{ display: "block", fontSize: 11, color: "#5a4a4a", letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>Código</label>
-                        <input value={newCode} onChange={e => setNewCode(e.target.value.toUpperCase())} placeholder="Ex: NATAL20"
-                          style={{ width: "100%", background: "#0c0a09", border: "1px solid #2a1f1f", borderRadius: 4, padding: "10px 12px", color: "#fbbf24", fontSize: 14, fontFamily: "monospace", letterSpacing: 2 }} />
-                      </div>
-                      <div>
-                        <label style={{ display: "block", fontSize: 11, color: "#5a4a4a", letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>Desconto (%)</label>
-                        <input type="number" value={newPct} onChange={e => setNewPct(e.target.value)} placeholder="Ex: 15" min="1" max="100"
-                          style={{ width: "100%", background: "#0c0a09", border: "1px solid #2a1f1f", borderRadius: 4, padding: "10px 12px", color: "#4ade80", fontSize: 14, fontFamily: "Georgia,serif" }} />
-                      </div>
-                      <button onClick={addCoupon} style={{ padding: "10px 18px", background: "#8b2c2c", border: "none", borderRadius: 4, color: "#fff", cursor: "pointer", fontSize: 13, fontFamily: "Georgia,serif" }}>+ Adicionar</button>
-                    </div>
-                  </div>
-                  <div style={{ background: "linear-gradient(145deg,#1a1410,#120e0c)", border: "1px solid #2a1f1f", borderRadius: 10, padding: 22 }}>
-                    <div style={{ fontSize: 12, letterSpacing: 2, color: "#a09080", textTransform: "uppercase", marginBottom: 16 }}>Cupons Ativos ({Object.keys(customCoupons).length})</div>
-                    {Object.entries(customCoupons).map(([code, pct]) => (
-                      <div key={code} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 0", borderBottom: "1px solid #1a1410" }}>
-                        <div style={{ background: "#120e0c", border: "1px dashed #8b2c2c", borderRadius: 6, padding: "6px 16px", minWidth: 120 }}>
-                          <span style={{ fontSize: 15, letterSpacing: 3, color: "#fbbf24", fontWeight: "bold" }}>{code}</span>
-                        </div>
-                        <div style={{ flex: 1, fontSize: 14, color: "#4ade80", fontWeight: "bold" }}>{pct}% OFF</div>
-                        <button onClick={() => { const updated = { ...customCoupons }; delete updated[code]; saveCoupons(updated); showToast(`Cupom ${code} removido.`, "error"); }}
-                          style={{ background: "none", border: "1px solid #3a1f1f", color: "#ef4444", padding: "5px 12px", borderRadius: 4, cursor: "pointer", fontSize: 12, fontFamily: "Georgia,serif" }}>🗑 Remover</button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })()}
+            {adminTab === "cupons" && <CuponsPanel customCoupons={customCoupons} saveCoupons={saveCoupons} showToast={showToast} />}
 
             {/* 🚚 Frete */}
-            {adminTab === "frete" && (() => {
-              const [editando, setEditando] = React.useState(null);
-              const [form, setForm] = React.useState({ id: "", nome: "", icon: "📦", prazo: "", base: "", minValue: "" });
-              const opcoes = freteConfig.opcoes || [];
-              const startEdit = (op) => { setEditando(op.id); setForm({ ...op, base: op.base, minValue: op.minValue || "" }); };
-              const saveEdit = () => {
-                const updated = opcoes.map(o => o.id === editando ? { ...form, base: +form.base || 0, minValue: form.minValue ? +form.minValue : undefined } : o);
-                saveFreteConfig({ opcoes: updated }); setEditando(null); showToast("Frete atualizado! ✅");
-              };
-              const addOpcao = () => {
-                const nova = { id: `frete_${Date.now()}`, nome: "Nova Opção", icon: "🚚", prazo: "7 dias úteis", base: 0 };
-                saveFreteConfig({ opcoes: [...opcoes, nova] }); startEdit(nova.id);
-              };
-              return (
-                <div style={{ maxWidth: 700 }}>
-                  <h1 style={{ fontSize: 24, marginBottom: 5 }}>🚚 Configurar Frete</h1>
-                  <p style={{ color: "#7a6a6a", fontSize: 13, marginBottom: 24 }}>Gerencie as opções de entrega exibidas aos clientes.</p>
-                  {opcoes.map(op => (
-                    <div key={op.id} style={{ background: "linear-gradient(145deg,#1a1410,#120e0c)", border: `1px solid ${editando === op.id ? "#8b2c2c" : "#2a1f1f"}`, borderRadius: 10, padding: 20, marginBottom: 14 }}>
-                      {editando === op.id ? (
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                          {[["nome","Nome (ex: PAC)"],["icon","Ícone (emoji)"],["prazo","Prazo (ex: 5 dias úteis)"],["base","Preço base (R$)"]].map(([f, l]) => (
-                            <div key={f}>
-                              <label style={{ display: "block", fontSize: 11, color: "#5a4a4a", letterSpacing: 1, textTransform: "uppercase", marginBottom: 5 }}>{l}</label>
-                              <input value={form[f] ?? ""} onChange={e => setForm(p => ({ ...p, [f]: e.target.value }))}
-                                style={{ width: "100%", background: "#0c0a09", border: "1px solid #2a1f1f", borderRadius: 4, padding: "9px 11px", color: "#f5f0e8", fontSize: 14, fontFamily: "Georgia,serif" }} />
-                            </div>
-                          ))}
-                          <div style={{ gridColumn: "1/-1" }}>
-                            <label style={{ display: "block", fontSize: 11, color: "#5a4a4a", letterSpacing: 1, textTransform: "uppercase", marginBottom: 5 }}>Valor mínimo para frete grátis (R$) — deixe vazio se não aplicar</label>
-                            <input type="number" value={form.minValue ?? ""} onChange={e => setForm(p => ({ ...p, minValue: e.target.value }))}
-                              style={{ width: "100%", background: "#0c0a09", border: "1px solid #2a1f1f", borderRadius: 4, padding: "9px 11px", color: "#fbbf24", fontSize: 14, fontFamily: "Georgia,serif" }} />
-                          </div>
-                          <div style={{ gridColumn: "1/-1", display: "flex", gap: 10 }}>
-                            <button onClick={saveEdit} style={{ padding: "9px 20px", background: "#8b2c2c", border: "none", borderRadius: 4, color: "#fff", cursor: "pointer", fontSize: 13, fontFamily: "Georgia,serif" }}>💾 Salvar</button>
-                            <button onClick={() => setEditando(null)} style={{ padding: "9px 16px", background: "none", border: "1px solid #2a1f1f", borderRadius: 4, color: "#7a6a6a", cursor: "pointer", fontSize: 13, fontFamily: "Georgia,serif" }}>Cancelar</button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                          <div style={{ fontSize: 28 }}>{op.icon}</div>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: 15, color: "#f5f0e8", fontWeight: "bold" }}>{op.nome}</div>
-                            <div style={{ fontSize: 12, color: "#7a6a6a" }}>{op.prazo} · {op.base === 0 ? <span style={{ color: "#4ade80" }}>Grátis</span> : `R$ ${(+op.base).toFixed(2)} base`}{op.minValue ? ` · Grátis acima de R$ ${op.minValue}` : ""}</div>
-                          </div>
-                          <button onClick={() => startEdit(op.id)} style={{ background: "none", border: "1px solid #2a3a2a", color: "#4ade80", padding: "6px 14px", borderRadius: 4, cursor: "pointer", fontSize: 12, fontFamily: "Georgia,serif" }}>✏️ Editar</button>
-                          <button onClick={() => { saveFreteConfig({ opcoes: opcoes.filter(o => o.id !== op.id) }); showToast("Opção removida.", "error"); }} style={{ background: "none", border: "1px solid #3a1f1f", color: "#ef4444", padding: "6px 12px", borderRadius: 4, cursor: "pointer", fontSize: 12, fontFamily: "Georgia,serif" }}>🗑</button>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                  <button onClick={addOpcao} style={{ marginTop: 8, padding: "10px 22px", background: "#1a1410", border: "1px solid #3a2f2f", borderRadius: 4, color: "#e8b4b4", cursor: "pointer", fontSize: 13, fontFamily: "Georgia,serif" }}>+ Adicionar opção de frete</button>
-                </div>
-              );
-            })()}
+            {adminTab === "frete" && <FretePanel freteConfig={freteConfig} saveFreteConfig={saveFreteConfig} showToast={showToast} />}
 
             {/* 💳 Gateway de Pagamento */}
             {adminTab === "pagamento" && (
@@ -3420,136 +3536,7 @@ Responda SOMENTE a linha CSV, sem explicações, sem cabeçalho, sem markdown.` 
             {adminTab === "seguranca" && <SegurancaPanel showToast={showToast} />}
 
             {/* 🖼 Galeria de Imagens */}
-            {adminTab === "imagens" && (() => {
-              const [imgs, setImgs] = React.useState([]);
-              const [loading, setLoading] = React.useState(true);
-              const [deleting, setDeleting] = React.useState(null);
-
-              React.useEffect(() => {
-                const load = async () => {
-                  setLoading(true);
-                  if (!supaCfg) { setLoading(false); return; }
-                  try {
-                    const c = supaCfg;
-                    const r = await fetch(`${c.url}/storage/v1/object/list/wines`, {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json", "apikey": c.key, "Authorization": `Bearer ${c.key}` },
-                      body: JSON.stringify({ prefix: "", limit: 200, offset: 0 })
-                    });
-                    const data = await r.json();
-                    if (Array.isArray(data)) {
-                      const list = data.filter(f => f.name && !f.name.endsWith("/")).map(f => ({
-                        name: f.name,
-                        url: `${c.url}/storage/v1/object/public/wines/${f.name}`,
-                        size: f.metadata?.size || 0,
-                        created: f.created_at,
-                      }));
-                      // Enriquecer com vinho associado
-                      setImgs(list.map(img => {
-                        const wine = wines.find(w => w.img && w.img.includes(img.name));
-                        return { ...img, wine };
-                      }));
-                    } else {
-                      setImgs([]);
-                    }
-                  } catch (e) {
-                    setImgs([]);
-                  }
-                  setLoading(false);
-                };
-                load();
-              }, [adminTab]);
-
-              const handleDelete = async (img) => {
-                if (!confirm(`Deletar imagem "${img.name}"?\n${img.wine ? `⚠️ Esta imagem está associada ao vinho: ${img.wine.name}` : "Esta imagem não está associada a nenhum vinho."}`)) return;
-                setDeleting(img.name);
-                try {
-                  const c = supaCfg;
-                  const r = await fetch(`${c.url}/storage/v1/object/wines/${img.name}`, {
-                    method: "DELETE",
-                    headers: { "apikey": c.key, "Authorization": `Bearer ${c.key}` }
-                  });
-                  if (r.ok) {
-                    // Se tinha vinho associado, limpa o img dele
-                    if (img.wine) {
-                      await supaFetch("wines", "PATCH", { img: null }, `id=eq.${img.wine.id}`, supaCfg);
-                      setWines(prev => prev.map(w => w.id === img.wine.id ? { ...w, img: null } : w));
-                    }
-                    setImgs(prev => prev.filter(i => i.name !== img.name));
-                    showToast("Imagem deletada! ✅");
-                  } else {
-                    showToast("Erro ao deletar imagem.", "error");
-                  }
-                } catch {
-                  showToast("Erro ao deletar imagem.", "error");
-                }
-                setDeleting(null);
-              };
-
-              const fmtSize = (b) => b > 1024*1024 ? `${(b/1024/1024).toFixed(1)} MB` : `${Math.round(b/1024)} KB`;
-
-              return (
-                <div>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
-                    <div>
-                      <h1 style={{ fontSize: 24, marginBottom: 4 }}>🖼 Galeria de Imagens</h1>
-                      <p style={{ color: "#7a6a6a", fontSize: 13 }}>{loading ? "Carregando…" : `${imgs.length} imagem${imgs.length !== 1 ? "s" : ""} no Supabase Storage`}</p>
-                    </div>
-                    <button onClick={() => setAdminTab("imagens")} style={{ padding: "8px 16px", background: "#1a1410", border: "1px solid #3a2f2f", borderRadius: 4, color: "#a09080", cursor: "pointer", fontSize: 13, fontFamily: "Georgia,serif" }}>🔄 Recarregar</button>
-                  </div>
-
-                  {!supaCfg && <div style={{ padding: "20px", background: "rgba(139,44,44,.08)", border: "1px solid rgba(139,44,44,.3)", borderRadius: 8, color: "#8b6060", fontSize: 13 }}>⚠️ Configure o Supabase primeiro na aba Banco de Dados.</div>}
-
-                  {loading && (
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 16 }}>
-                      {[...Array(6)].map((_, i) => <div key={i} style={{ background: "#1a1410", borderRadius: 10, height: 220, animation: "pulse 1.5s infinite" }} />)}
-                    </div>
-                  )}
-
-                  {!loading && imgs.length === 0 && supaCfg && (
-                    <div style={{ textAlign: "center", padding: 60, color: "#3a2a2a", fontSize: 14 }}>
-                      <div style={{ fontSize: 48, marginBottom: 12 }}>🖼</div>
-                      Nenhuma imagem encontrada no Storage.<br />
-                      <span style={{ fontSize: 12 }}>Cadastre vinhos com foto para vê-las aqui.</span>
-                    </div>
-                  )}
-
-                  {!loading && imgs.length > 0 && (
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 16 }}>
-                      {imgs.map(img => (
-                        <div key={img.name} style={{ background: "linear-gradient(145deg,#1a1410,#120e0c)", border: "1px solid #2a1f1f", borderRadius: 10, overflow: "hidden", transition: "border-color .2s" }}
-                          onMouseEnter={e => e.currentTarget.style.borderColor = "#8b2c2c"}
-                          onMouseLeave={e => e.currentTarget.style.borderColor = "#2a1f1f"}>
-                          {/* Imagem */}
-                          <div style={{ position: "relative", width: "100%", height: 160, background: "#0c0a09", overflow: "hidden" }}>
-                            <img src={img.url} alt={img.name} style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                              onError={e => { e.target.style.display = "none"; }} />
-                            {img.wine && (
-                              <div style={{ position: "absolute", top: 6, left: 6, background: "rgba(139,44,44,.85)", borderRadius: 4, padding: "2px 7px", fontSize: 10, color: "#fff" }}>
-                                🍷 Vinculada
-                              </div>
-                            )}
-                          </div>
-                          {/* Info */}
-                          <div style={{ padding: "10px 12px" }}>
-                            <div style={{ fontSize: 11, color: "#7a6a6a", marginBottom: 4, wordBreak: "break-all", lineHeight: 1.4 }}>{img.name}</div>
-                            {img.wine && <div style={{ fontSize: 11, color: "#e8b4b4", marginBottom: 4 }} title={img.wine.name}>📦 {img.wine.name.slice(0, 22)}{img.wine.name.length > 22 ? "…" : ""}</div>}
-                            {img.size > 0 && <div style={{ fontSize: 10, color: "#3a2a2a", marginBottom: 8 }}>{fmtSize(img.size)}</div>}
-                            <div style={{ display: "flex", gap: 6 }}>
-                              <a href={img.url} target="_blank" rel="noreferrer" style={{ flex: 1, textAlign: "center", padding: "6px", background: "#1a2a3a", border: "1px solid #2a3a4a", borderRadius: 4, color: "#60a5fa", fontSize: 11, textDecoration: "none", fontFamily: "Georgia,serif" }}>🔗 Ver</a>
-                              <button onClick={() => handleDelete(img)} disabled={deleting === img.name}
-                                style={{ flex: 1, padding: "6px", background: deleting === img.name ? "#1a1410" : "#2a1010", border: "1px solid #3a1f1f", borderRadius: 4, color: deleting === img.name ? "#5a4a4a" : "#ef4444", cursor: deleting === img.name ? "not-allowed" : "pointer", fontSize: 11, fontFamily: "Georgia,serif" }}>
-                                {deleting === img.name ? "⏳" : "🗑 Del"}
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
+            {adminTab === "imagens" && <GaleriaPanel supaCfg={supaCfg} wines={wines} setWines={setWines} supaFetch={supaFetch} showToast={showToast} />}
 
           </main>
         </div>
