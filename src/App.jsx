@@ -1700,16 +1700,26 @@ const getEmailConfig = () => { try { const s = localStorage.getItem("v9_emailjs"
 const sendEmail = async (templateId, params) => {
   const cfg = getEmailConfig();
   if (!cfg?.serviceId || !cfg?.publicKey) return false;
-  const tid = cfg.templates?.[templateId] || cfg[templateId] || "";
+  const tid = cfg.templates?.[templateId] || "";
   if (!tid) return false;
   try {
     const r = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ service_id: cfg.serviceId, template_id: tid, user_id: cfg.publicKey, template_params: params })
+      body: JSON.stringify({
+        service_id: cfg.serviceId,
+        template_id: tid,
+        user_id: cfg.publicKey,
+        accessToken: cfg.publicKey,
+        template_params: params
+      })
     });
-    return r.status === 200;
-  } catch { return false; }
+    if (!r.ok) {
+      const txt = await r.text().catch(() => r.status);
+      console.error("EmailJS error:", r.status, txt);
+    }
+    return r.ok;
+  } catch (e) { console.error("EmailJS fetch error:", e); return false; }
 };
 
 // ─── Painel E-mails ───────────────────────────────────────────────────────────
@@ -1723,6 +1733,9 @@ const EmailPanel = ({ showToast }) => {
 
   const testSend = async (templateKey) => {
     if (!testEmail) return showToast("Informe um e-mail para teste.", "error");
+    if (!cfg.serviceId || !cfg.publicKey) return showToast("Salve o Service ID e a Public Key primeiro.", "error");
+    const tid = cfg.templates?.[templateKey];
+    if (!tid) return showToast("Preencha o Template ID deste e-mail primeiro.", "error");
     setTesting(templateKey);
     const params = {
       to_email: testEmail, to_name: "Cliente Teste",
@@ -1733,8 +1746,22 @@ const EmailPanel = ({ showToast }) => {
       reset_link: window.location.origin + "?reset=true",
       coupon_code: "BEMVINDO",
     };
-    const ok = await sendEmail(templateKey, params);
-    showToast(ok ? `E-mail de teste enviado para ${testEmail}! ✅` : "Erro ao enviar. Verifique as credenciais.", ok ? undefined : "error");
+    // Chama diretamente para pegar erro detalhado
+    try {
+      const r = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ service_id: cfg.serviceId, template_id: tid, user_id: cfg.publicKey, accessToken: cfg.publicKey, template_params: params })
+      });
+      if (r.ok) {
+        showToast(`✅ E-mail de teste enviado para ${testEmail}!`);
+      } else {
+        const txt = await r.text().catch(() => `HTTP ${r.status}`);
+        showToast(`Erro ${r.status}: ${txt}`, "error");
+      }
+    } catch (e) {
+      showToast(`Erro de conexão: ${e.message}`, "error");
+    }
     setTesting(null);
   };
 
