@@ -1344,16 +1344,26 @@ const CSVPanel = ({ importCSV, showToast }) => {
   const [aiImg, setAiImg] = useState(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiCSV, setAiCSV] = useState("");
+  const [apiKey, setApiKey] = useState(() => { try { return localStorage.getItem("v9_anthropic_key") || ""; } catch { return ""; } });
+  const [showKey, setShowKey] = useState(false);
+
+  const saveKey = (k) => { setApiKey(k); try { localStorage.setItem("v9_anthropic_key", k); } catch {} };
 
   const gerarCSV = async () => {
     if (!aiImg) return showToast("Selecione uma imagem primeiro.", "error");
+    if (!apiKey.trim()) return showToast("Cole sua chave Anthropic API primeiro.", "error");
     setAiLoading(true); setAiCSV("");
     try {
       const base64 = aiImg.split(",")[1];
       const mime = aiImg.split(";")[0].split(":")[1];
       const resp = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": apiKey.trim(),
+          "anthropic-version": "2023-06-01",
+          "anthropic-dangerous-direct-browser-access": "true",
+        },
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514",
           max_tokens: 1000,
@@ -1364,10 +1374,11 @@ const CSVPanel = ({ importCSV, showToast }) => {
         })
       });
       const data = await resp.json();
+      if (data.error) { showToast(`Erro da IA: ${data.error.message}`, "error"); setAiLoading(false); return; }
       const csv = data.content?.find(b => b.type === "text")?.text?.trim() || "";
       setAiCSV(csv);
       showToast("CSV gerado pela IA! ✅");
-    } catch { showToast("Erro ao chamar a IA.", "error"); }
+    } catch (e) { showToast("Erro ao chamar a IA. Verifique sua chave API.", "error"); }
     setAiLoading(false);
   };
 
@@ -1424,6 +1435,26 @@ const CSVPanel = ({ importCSV, showToast }) => {
       <div style={{ background: "linear-gradient(145deg,#1a1410,#120e0c)", border: "1px solid #3a2a4a", borderRadius: 10, padding: 22 }}>
         <div style={{ fontSize: 12, letterSpacing: 2, color: "#c084fc", textTransform: "uppercase", marginBottom: 6 }}>🤖 Gerar CSV com Inteligência Artificial</div>
         <p style={{ fontSize: 13, color: "#7a6a6a", lineHeight: 1.7, marginBottom: 16 }}>Envie a foto de um vinho e a IA gera o CSV com <strong style={{ color: "#e8b4b4" }}>título SEO otimizado</strong> automaticamente.</p>
+
+        {/* Chave API */}
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ display: "block", fontSize: 11, color: "#5a4a4a", letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>
+            🔑 Chave Anthropic API — <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noreferrer" style={{ color: "#c084fc", textDecoration: "none" }}>Obter em console.anthropic.com</a>
+          </label>
+          <div style={{ display: "flex", gap: 8 }}>
+            <input
+              type={showKey ? "text" : "password"}
+              value={apiKey}
+              onChange={e => saveKey(e.target.value)}
+              placeholder="sk-ant-api03-..."
+              style={{ flex: 1, background: "#0c0a09", border: "1px solid #3a2a4a", borderRadius: 4, padding: "9px 12px", color: "#c084fc", fontSize: 13, fontFamily: "monospace" }}
+            />
+            <button onClick={() => setShowKey(s => !s)} style={{ padding: "9px 14px", background: "#1a1410", border: "1px solid #3a2a4a", borderRadius: 4, color: "#7a6a6a", cursor: "pointer", fontSize: 13 }}>
+              {showKey ? "🙈" : "👁"}
+            </button>
+          </div>
+          <div style={{ fontSize: 11, color: "#3a2a4a", marginTop: 5 }}>A chave fica salva localmente no seu navegador.</div>
+        </div>
         <input type="file" accept="image/*" ref={aiImgRef} style={{ display: "none" }} onChange={e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = ev => setAiImg(ev.target.result); r.readAsDataURL(f); }} />
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-start", marginBottom: 14 }}>
           <div>
