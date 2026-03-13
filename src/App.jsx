@@ -1323,9 +1323,35 @@ export default function App() {
 
   // ── Supabase: wrapper para operações com fallback local ──────────────────
   const dbAddWine = async (wine) => {
-    const w = { ...wine, cost_price: wine.costPrice, promo_price: wine.promoPrice || null, description: wine.description || wine.desc || "", keywords: wine.keywords || "", harmonization: wine.harmonization || "" };
-    if (supaCfg) { const r = await supa.wines.insert(w, supaCfg); if (r?.[0]) return { ...r[0], description: r[0].description, promoPrice: r[0].promo_price, costPrice: r[0].cost_price, keywords: r[0].keywords || "", harmonization: r[0].harmonization || "" }; }
-    return { ...wine, id: Date.now() };
+    // Campos aceitos pelo Supabase (sem campos locais como img base64 grande)
+    const w = {
+      name: wine.name,
+      origin: wine.origin || "",
+      region: wine.region || "",
+      year: wine.year ? +wine.year : null,
+      cost_price: +wine.costPrice || 0,
+      price: +wine.price,
+      promo_price: wine.promoPrice ? +wine.promoPrice : null,
+      stock: +wine.stock || 0,
+      category: wine.category || "Tinto",
+      alcohol: wine.alcohol || "",
+      grapes: wine.grapes || "",
+      description: wine.description || "",
+      keywords: wine.keywords || "",
+      harmonization: wine.harmonization || "",
+      img: wine.img || null,
+      rating: 4.5,
+      sales: 0,
+    };
+    if (supaCfg) {
+      const r = await supa.wines.insert(w, supaCfg);
+      if (r === "cors_blocked") { showToast("CORS: só funciona após publicar no Vercel.", "error"); return null; }
+      if (r?.[0]) return { ...r[0], description: r[0].description, promoPrice: r[0].promo_price, costPrice: r[0].cost_price, keywords: r[0].keywords || "", harmonization: r[0].harmonization || "" };
+      showToast("Erro ao salvar no Supabase. Verifique o SQL Editor.", "error");
+      return null;
+    }
+    showToast("Supabase não configurado. Configure na aba Banco de Dados.", "error");
+    return null;
   };
   const dbUpdateWine = async (wine) => {
     const w = { ...wine, cost_price: wine.costPrice, promo_price: wine.promoPrice || null, description: wine.description || wine.desc || "", keywords: wine.keywords || "", harmonization: wine.harmonization || "" };
@@ -1505,8 +1531,16 @@ export default function App() {
     if (!newWine.name || !newWine.price) return showToast("Preencha nome e preço de venda.", "error");
     const base = { ...newWine, price: +newWine.price, costPrice: +newWine.costPrice || 0, promoPrice: newWine.promoPrice ? +newWine.promoPrice : null, stock: +newWine.stock || 0, year: +newWine.year || "", sales: 0, rating: 4.5 };
     const saved = await dbAddWine(base);
-    setWines((p) => [...p, saved]);
-    setNewWine(emptyWine); showToast("Vinho cadastrado!"); setAdminTab("wines");
+    if (saved) {
+      setWines((p) => [...p, saved]);
+      showToast("Vinho cadastrado e salvo no banco! ✅");
+    } else {
+      showToast("Erro ao salvar no banco. Verifique a conexão Supabase.", "error");
+      return;
+    }
+    setNewWine(emptyWine); setAdminTab("wines");
+    // Recarrega do banco para garantir sincronização
+    if (supaCfg) setTimeout(() => loadFromSupabase(supaCfg), 800);
   };
   const handleSaveEdit = async () => {
     const updated = { ...editWine, price: +editWine.price, costPrice: +editWine.costPrice || 0, promoPrice: editWine.promoPrice ? +editWine.promoPrice : null, stock: +editWine.stock, year: +editWine.year };
