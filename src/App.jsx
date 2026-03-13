@@ -824,10 +824,12 @@ const HeroBannerCarousel = ({ banners, onFilterChange, setPage }) => {
 };
 
 // ── ClientAccountPanel ────────────────────────────────────────────────────────
-const ClientAccountPanel = ({ wines, addToCart, setSelectedWine, setPage, onClose }) => {
-  const [authMode, setAuthMode] = useState("login"); // "login" | "register" | "loggedin"
+const ClientAccountPanel = ({ wines, addToCart, setSelectedWine, setPage, onClose, onOrderComplete }) => {
+  const [authMode, setAuthMode] = useState(() => {
+    try { return localStorage.getItem("v9_client") ? "loggedin" : "login"; } catch { return "login"; }
+  });
   const [tab, setTab] = useState("orders");
-  const [wishlist, setWishlist] = useState(MOCK_CLIENT.wishlist);
+  const [wishlist, setWishlist] = useState(() => { try { const s = localStorage.getItem("v9_wishlist"); return s ? JSON.parse(s) : []; } catch { return []; } });
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPwd, setLoginPwd] = useState("");
   const [showPwd, setShowPwd] = useState(false);
@@ -836,28 +838,66 @@ const ClientAccountPanel = ({ wines, addToCart, setSelectedWine, setPage, onClos
   const [regPwd, setRegPwd] = useState("");
   const [regPhone, setRegPhone] = useState("");
   const [authError, setAuthError] = useState("");
-  const client = MOCK_CLIENT;
-  const tierColor = { Gold: "#fbbf24", Silver: "#c0c0c0", Bronze: "#cd7f32" }[client.tier] || "#e8b4b4";
+
+  // Cliente real salvo no localStorage
+  const [client, setClient] = useState(() => {
+    try {
+      const s = localStorage.getItem("v9_client");
+      return s ? JSON.parse(s) : null;
+    } catch { return null; }
+  });
+
+  const saveClient = (c) => { setClient(c); try { localStorage.setItem("v9_client", JSON.stringify(c)); } catch {} };
+
+  const tierColor = { Gold: "#fbbf24", Silver: "#c0c0c0", Bronze: "#cd7f32" }[client?.tier] || "#e8b4b4";
   const wishlistWines = wines.filter(w => wishlist.includes(w.id));
 
+  const getTier = (pts) => pts >= 5000 ? "Gold" : pts >= 2000 ? "Silver" : "Bronze";
+  const tierMeta = { Bronze: { next: "Silver", needed: 2000 }, Silver: { next: "Gold", needed: 5000 }, Gold: { next: null, needed: 5000 } };
+
   const handleLogin = () => {
-    if (loginEmail === "ana@vinhos9.com" && loginPwd === "123456") {
-      setAuthMode("loggedin"); setAuthError("");
-    } else if (!loginEmail || !loginPwd) {
-      setAuthError("Preencha e-mail e senha.");
-    } else {
-      setAuthError("E-mail ou senha incorretos. Dica: ana@vinhos9.com / 123456");
-    }
+    if (!loginEmail || !loginPwd) { setAuthError("Preencha e-mail e senha."); return; }
+    try {
+      const all = JSON.parse(localStorage.getItem("v9_clients_db") || "{}");
+      const found = Object.values(all).find(c => c.email === loginEmail && c.pwd === loginPwd);
+      if (found) { saveClient(found); setAuthMode("loggedin"); setAuthError(""); }
+      else setAuthError("E-mail ou senha incorretos.");
+    } catch { setAuthError("Erro ao fazer login."); }
   };
 
   const handleRegister = () => {
     if (!regName || !regEmail || !regPwd) { setAuthError("Preencha todos os campos obrigatórios."); return; }
     if (regPwd.length < 6) { setAuthError("A senha deve ter ao menos 6 caracteres."); return; }
+    const newClient = {
+      id: `c_${Date.now()}`, name: regName, email: regEmail, pwd: regPwd, phone: regPhone,
+      since: new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" }),
+      tier: "Bronze", points: 200, orders: [],
+      pointsHistory: [{ date: new Date().toLocaleDateString("pt-BR"), desc: "Boas-vindas", pts: 200 }],
+      savedCoupons: ["BEMVINDO"],
+    };
+    try {
+      const all = JSON.parse(localStorage.getItem("v9_clients_db") || "{}");
+      all[newClient.id] = newClient;
+      localStorage.setItem("v9_clients_db", JSON.stringify(all));
+    } catch {}
+    saveClient(newClient);
     setAuthMode("loggedin"); setAuthError("");
+    // E-mail de boas-vindas
+    sendEmail("boasVindas", { to_email: regEmail, to_name: regName, store_name: "Vinhos9", coupon_code: "BEMVINDO" });
+  };
+
+  // Atualiza cliente no DB quando muda
+  const updateClientDB = (updated) => {
+    saveClient(updated);
+    try {
+      const all = JSON.parse(localStorage.getItem("v9_clients_db") || "{}");
+      if (updated.id) { all[updated.id] = updated; localStorage.setItem("v9_clients_db", JSON.stringify(all)); }
+    } catch {}
   };
 
   const TABS = [
     ["orders", "📦", "Pedidos"],
+    ["pontos", "🪙", "Pontos"],
     ["wishlist", "❤️", "Favoritos"],
     ["coupons", "🎁", "Cupons"],
     ["profile", "👤", "Perfil"],
@@ -957,7 +997,7 @@ const ClientAccountPanel = ({ wines, addToCart, setSelectedWine, setPage, onClos
             <button onClick={onClose} style={{ background: "none", border: "none", color: "#7a6a6a", cursor: "pointer", fontSize: 18 }}>✕</button>
           </div>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            {[["⭐","Nível",client.tier,tierColor],["🪙","Pontos",client.points.toLocaleString("pt-BR"),"#e8b4b4"],["📅","Desde",client.since,"#a09080"]].map(([icon,label,val,col]) => (
+            {[[" ⭐","Nível",client?.tier || "Bronze",tierColor],["🪙","Pontos",(client?.points || 0).toLocaleString("pt-BR"),"#e8b4b4"],["📅","Desde",client?.since || "—","#a09080"]].map(([icon,label,val,col]) => (
               <div key={label} style={{ background: "rgba(0,0,0,.3)", border: "1px solid #2a1f1f", borderRadius: 8, padding: "8px 12px", display: "flex", alignItems: "center", gap: 7 }}>
                 <span style={{ fontSize: 14 }}>{icon}</span>
                 <div>
@@ -983,8 +1023,9 @@ const ClientAccountPanel = ({ wines, addToCart, setSelectedWine, setPage, onClos
         <div style={{ flex: 1, padding: "20px 18px", overflowY: "auto" }}>
           {tab === "orders" && (
             <div>
-              <div style={{ fontSize: 10, letterSpacing: 2, color: "#5a4a4a", textTransform: "uppercase", marginBottom: 14 }}>Histórico de Compras ({client.orders.length})</div>
-              {client.orders.map((order) => {
+              <div style={{ fontSize: 10, letterSpacing: 2, color: "#5a4a4a", textTransform: "uppercase", marginBottom: 14 }}>Histórico de Compras ({(client?.orders || []).length})</div>
+              {(client?.orders || []).length === 0 && <div style={{ textAlign: "center", padding: 32, color: "#5a4a4a", fontSize: 12 }}>Nenhuma compra ainda. Explore o catálogo! 🍷</div>}
+              {(client?.orders || []).map((order) => {
                 const statusColors = { "Entregue": "#4ade80", "Em trânsito": "#fbbf24", "Aguardando": "#a09080" };
                 const statusBg = { "Entregue": "#1a3a1a", "Em trânsito": "#2a2510", "Aguardando": "#1a1a1a" };
                 return (
@@ -994,16 +1035,57 @@ const ClientAccountPanel = ({ wines, addToCart, setSelectedWine, setPage, onClos
                       <span style={{ fontSize: 9, padding: "2px 10px", borderRadius: 10, background: statusBg[order.status] || "#1a1a1a", color: statusColors[order.status] || "#a09080" }}>{order.status}</span>
                     </div>
                     <div style={{ fontSize: 10, color: "#5a4a4a", marginBottom: 8 }}>{order.date}</div>
-                    {order.wines.map((w, i) => <div key={i} style={{ fontSize: 11, color: "#a09080", marginBottom: 2 }}>· {w}</div>)}
+                    {(order.wines || [order.items]).filter(Boolean).map((w, i) => <div key={i} style={{ fontSize: 11, color: "#a09080", marginBottom: 2 }}>· {w}</div>)}
                     <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid #1a1410", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <span style={{ fontSize: 13, color: "#e8b4b4", fontWeight: "bold" }}>{fmt(order.total)}</span>
-                      {order.status === "Entregue" && (
-                        <button onClick={() => { setPage("store"); onClose(); }} style={{ background: "none", border: "1px solid #2a1f1f", color: "#8b6060", padding: "4px 10px", borderRadius: 4, cursor: "pointer", fontSize: 9, fontFamily: "Georgia,serif", letterSpacing: 1 }}>Recomprar</button>
-                      )}
+                      {order.pts && <span style={{ fontSize: 10, color: "#fbbf24" }}>+{order.pts} pts</span>}
                     </div>
                   </div>
                 );
               })}
+            </div>
+          )}
+
+          {tab === "pontos" && (
+            <div>
+              {/* Saldo atual */}
+              <div style={{ background: "linear-gradient(145deg,#1a1a0e,#12100a)", border: "1px solid #3a3a1a", borderRadius: 10, padding: "20px 18px", marginBottom: 16 }}>
+                <div style={{ fontSize: 10, letterSpacing: 2, color: "#7a7a2a", textTransform: "uppercase", marginBottom: 8 }}>Saldo de Pontos</div>
+                <div style={{ fontSize: 36, color: "#fbbf24", fontWeight: "bold", marginBottom: 4 }}>{(client?.points || 0).toLocaleString("pt-BR")} <span style={{ fontSize: 14, color: "#7a7a2a" }}>pts</span></div>
+                <div style={{ fontSize: 11, color: "#5a5a2a", marginBottom: 12 }}>R$ 1 gasto = 1 ponto</div>
+                {/* Barra de nível */}
+                {(() => {
+                  const pts = client?.points || 0;
+                  const tier = getTier(pts);
+                  const meta = tierMeta[tier];
+                  const pct = meta.next ? Math.min(100, (pts / meta.needed) * 100) : 100;
+                  return (
+                    <div>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#5a4a4a", marginBottom: 4 }}>
+                        <span style={{ color: tierColor }}>⭐ {tier}</span>
+                        {meta.next ? <span>{pts.toLocaleString()} / {meta.needed.toLocaleString()} pts → {meta.next}</span> : <span style={{ color: "#fbbf24" }}>Nível máximo! 🏆</span>}
+                      </div>
+                      <div style={{ background: "#2a2a1a", borderRadius: 6, height: 7, overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: `${pct}%`, background: `linear-gradient(to right, ${tierColor}88, ${tierColor})`, borderRadius: 6, transition: "width .5s" }} />
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+              {/* Histórico */}
+              <div style={{ fontSize: 10, letterSpacing: 2, color: "#5a4a4a", textTransform: "uppercase", marginBottom: 12 }}>Histórico de Pontos</div>
+              {(client?.pointsHistory || []).length === 0 && <div style={{ textAlign: "center", padding: 24, color: "#5a4a4a", fontSize: 12 }}>Nenhuma movimentação ainda.</div>}
+              {[...(client?.pointsHistory || [])].reverse().map((h, i) => (
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid #1a1410" }}>
+                  <div>
+                    <div style={{ fontSize: 12, color: "#f5f0e8" }}>{h.desc}</div>
+                    <div style={{ fontSize: 10, color: "#5a4a4a", marginTop: 2 }}>{h.date}</div>
+                  </div>
+                  <div style={{ fontSize: 14, fontWeight: "bold", color: h.pts > 0 ? "#4ade80" : "#ef4444" }}>
+                    {h.pts > 0 ? "+" : ""}{h.pts} pts
+                  </div>
+                </div>
+              ))}
             </div>
           )}
 
@@ -1032,25 +1114,22 @@ const ClientAccountPanel = ({ wines, addToCart, setSelectedWine, setPage, onClos
           {tab === "coupons" && (
             <div>
               <div style={{ fontSize: 10, letterSpacing: 2, color: "#5a4a4a", textTransform: "uppercase", marginBottom: 14 }}>Seus Cupons</div>
-              {client.savedCoupons.map((code) => (
+              {(client?.savedCoupons || []).length === 0 && <div style={{ textAlign: "center", padding: 24, color: "#5a4a4a", fontSize: 12 }}>Nenhum cupom disponível.</div>}
+              {(client?.savedCoupons || []).map((code) => (
                 <div key={code} style={{ background: "linear-gradient(145deg,#1a1500,#120e00)", border: "1px dashed #3a2a00", borderRadius: 10, padding: "16px 18px", marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div>
                     <div style={{ fontSize: 17, color: "#fbbf24", fontWeight: "bold", letterSpacing: 2 }}>{code}</div>
-                    <div style={{ fontSize: 10, color: "#7a6060", marginTop: 4 }}>
-                      {code === "VINO10" && "10% de desconto na próxima compra"}
-                      {code === "VINO20" && "20% de desconto na próxima compra"}
-                      {code === "BEMVINDO" && "15% de desconto — cupom de boas-vindas"}
-                    </div>
+                    <div style={{ fontSize: 10, color: "#7a6060", marginTop: 4 }}>Cupom de desconto — use no carrinho</div>
                   </div>
                   <div style={{ fontSize: 22 }}>🎁</div>
                 </div>
               ))}
               <div style={{ background: "rgba(74,222,128,.05)", border: "1px solid rgba(74,222,128,.15)", borderRadius: 10, padding: "14px 16px", marginTop: 8 }}>
-                <div style={{ fontSize: 10, color: "#4ade80", marginBottom: 6, letterSpacing: 1 }}>💡 Próximo cupom</div>
+                <div style={{ fontSize: 10, color: "#4ade80", marginBottom: 6, letterSpacing: 1 }}>🪙 Seus pontos</div>
                 <div style={{ background: "#1a3a1a", borderRadius: 6, height: 6, overflow: "hidden", marginBottom: 6 }}>
-                  <div style={{ height: "100%", width: `${Math.min(100, (client.points / 3000) * 100)}%`, background: "linear-gradient(to right,#166534,#4ade80)", borderRadius: 6 }} />
+                  <div style={{ height: "100%", width: `${Math.min(100, ((client?.points || 0) / 5000) * 100)}%`, background: "linear-gradient(to right,#166534,#4ade80)", borderRadius: 6 }} />
                 </div>
-                <div style={{ fontSize: 10, color: "#5a4a4a" }}>{client.points} / 3.000 pontos para 15% OFF</div>
+                <div style={{ fontSize: 10, color: "#5a4a4a" }}>{(client?.points || 0).toLocaleString()} / 5.000 pontos para nível Gold</div>
               </div>
             </div>
           )}
@@ -1058,16 +1137,14 @@ const ClientAccountPanel = ({ wines, addToCart, setSelectedWine, setPage, onClos
           {tab === "profile" && (
             <div>
               <div style={{ fontSize: 10, letterSpacing: 2, color: "#5a4a4a", textTransform: "uppercase", marginBottom: 14 }}>Informações Pessoais</div>
-              {[["Nome completo", client.name],["E-mail", client.email],["Telefone", client.phone],["Cliente desde", client.since]].map(([label, value]) => (
+              {[["Nome completo", client?.name],["E-mail", client?.email],["Telefone", client?.phone || "—"],["Cliente desde", client?.since || "—"]].map(([label, value]) => (
                 <div key={label} style={{ marginBottom: 14 }}>
                   <div style={{ fontSize: 9, letterSpacing: 2, color: "#5a4a4a", textTransform: "uppercase", marginBottom: 5 }}>{label}</div>
                   <div style={{ background: "#1a1410", border: "1px solid #2a1f1f", borderRadius: 4, padding: "10px 13px", fontSize: 13, color: "#f5f0e8", fontFamily: "Georgia,serif" }}>{value}</div>
                 </div>
               ))}
-              <button style={{ marginTop: 8, width: "100%", padding: "11px", background: "#8b2c2c", border: "none", borderRadius: 4, color: "#fff", cursor: "pointer", fontSize: 11, fontFamily: "Georgia,serif", letterSpacing: 2, textTransform: "uppercase" }}>
-                ✏️ Editar Perfil
-              </button>
-              <button onClick={() => { setAuthMode("login"); setLoginEmail(""); setLoginPwd(""); }} style={{ marginTop: 8, width: "100%", padding: "11px", background: "none", border: "1px solid #2a1f1f", borderRadius: 4, color: "#7a6a6a", cursor: "pointer", fontSize: 11, fontFamily: "Georgia,serif", letterSpacing: 1 }}>
+              <button onClick={() => { saveClient(null); try { localStorage.removeItem("v9_client"); } catch {} setAuthMode("login"); setLoginEmail(""); setLoginPwd(""); }}
+                style={{ marginTop: 8, width: "100%", padding: "11px", background: "none", border: "1px solid #2a1f1f", borderRadius: 4, color: "#7a6a6a", cursor: "pointer", fontSize: 11, fontFamily: "Georgia,serif", letterSpacing: 1 }}>
                 🚪 Sair da conta
               </button>
             </div>
@@ -1232,11 +1309,12 @@ using (bucket_id = 'wines');`;
 const CuponsPanel = ({ customCoupons, saveCoupons, showToast }) => {
   const [newCode, setNewCode] = useState("");
   const [newPct, setNewPct] = useState("");
+  const [newLimit, setNewLimit] = useState("");
   const addCoupon = () => {
     const code = newCode.toUpperCase().trim();
     if (!code || !newPct || +newPct <= 0 || +newPct > 100) return showToast("Preencha código e percentual válido.", "error");
-    saveCoupons({ ...customCoupons, [code]: +newPct });
-    setNewCode(""); setNewPct(""); showToast(`Cupom ${code} criado! ✅`);
+    saveCoupons({ ...customCoupons, [code]: { pct: +newPct, limit: newLimit ? +newLimit : null, uses: 0 } });
+    setNewCode(""); setNewPct(""); setNewLimit(""); showToast(`Cupom ${code} criado! ✅`);
   };
   return (
     <div style={{ maxWidth: 600 }}>
@@ -1244,7 +1322,7 @@ const CuponsPanel = ({ customCoupons, saveCoupons, showToast }) => {
       <p style={{ color: "#7a6a6a", fontSize: 13, marginBottom: 24 }}>Crie e remova cupons de desconto para seus clientes.</p>
       <div style={{ background: "linear-gradient(145deg,#1a1410,#120e0c)", border: "1px solid #2a1f1f", borderRadius: 10, padding: 22, marginBottom: 20 }}>
         <div style={{ fontSize: 12, letterSpacing: 2, color: "#a09080", textTransform: "uppercase", marginBottom: 16 }}>Criar Novo Cupom</div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: 12, alignItems: "end" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr auto", gap: 12, alignItems: "end" }}>
           <div>
             <label style={{ display: "block", fontSize: 11, color: "#5a4a4a", letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>Código</label>
             <input value={newCode} onChange={e => setNewCode(e.target.value.toUpperCase())} placeholder="Ex: NATAL20"
@@ -1255,21 +1333,46 @@ const CuponsPanel = ({ customCoupons, saveCoupons, showToast }) => {
             <input type="number" value={newPct} onChange={e => setNewPct(e.target.value)} placeholder="Ex: 15" min="1" max="100"
               style={{ width: "100%", background: "#0c0a09", border: "1px solid #2a1f1f", borderRadius: 4, padding: "10px 12px", color: "#4ade80", fontSize: 14, fontFamily: "Georgia,serif", boxSizing: "border-box" }} />
           </div>
-          <button onClick={addCoupon} style={{ padding: "10px 18px", background: "#8b2c2c", border: "none", borderRadius: 4, color: "#fff", cursor: "pointer", fontSize: 13, fontFamily: "Georgia,serif" }}>+ Adicionar</button>
+          <div>
+            <label style={{ display: "block", fontSize: 11, color: "#5a4a4a", letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>Limite de usos</label>
+            <input type="number" value={newLimit} onChange={e => setNewLimit(e.target.value)} placeholder="∞ Ilimitado" min="1"
+              style={{ width: "100%", background: "#0c0a09", border: "1px solid #2a1f1f", borderRadius: 4, padding: "10px 12px", color: "#60a5fa", fontSize: 14, fontFamily: "Georgia,serif", boxSizing: "border-box" }} />
+          </div>
+          <button onClick={addCoupon} style={{ padding: "10px 18px", background: "#8b2c2c", border: "none", borderRadius: 4, color: "#fff", cursor: "pointer", fontSize: 13, fontFamily: "Georgia,serif", whiteSpace: "nowrap" }}>+ Adicionar</button>
         </div>
+        <p style={{ fontSize: 11, color: "#3a2a2a", marginTop: 8 }}>Deixe "Limite de usos" vazio para cupom ilimitado.</p>
       </div>
       <div style={{ background: "linear-gradient(145deg,#1a1410,#120e0c)", border: "1px solid #2a1f1f", borderRadius: 10, padding: 22 }}>
         <div style={{ fontSize: 12, letterSpacing: 2, color: "#a09080", textTransform: "uppercase", marginBottom: 16 }}>Cupons Ativos ({Object.keys(customCoupons).length})</div>
-        {Object.entries(customCoupons).map(([code, pct]) => (
-          <div key={code} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 0", borderBottom: "1px solid #1a1410" }}>
-            <div style={{ background: "#120e0c", border: "1px dashed #8b2c2c", borderRadius: 6, padding: "6px 16px", minWidth: 120 }}>
-              <span style={{ fontSize: 15, letterSpacing: 3, color: "#fbbf24", fontWeight: "bold" }}>{code}</span>
+        {Object.entries(customCoupons).map(([code, data]) => {
+          const pct = typeof data === "object" ? data.pct : data;
+          const limit = typeof data === "object" ? data.limit : null;
+          const uses = typeof data === "object" ? (data.uses || 0) : 0;
+          const esgotado = limit != null && uses >= limit;
+          return (
+            <div key={code} style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 0", borderBottom: "1px solid #1a1410", opacity: esgotado ? 0.5 : 1 }}>
+              <div style={{ background: "#120e0c", border: `1px dashed ${esgotado ? "#5a4a4a" : "#8b2c2c"}`, borderRadius: 6, padding: "6px 16px", minWidth: 110 }}>
+                <span style={{ fontSize: 14, letterSpacing: 3, color: esgotado ? "#5a4a4a" : "#fbbf24", fontWeight: "bold" }}>{code}</span>
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 15, color: "#4ade80", fontWeight: "bold" }}>{pct}% OFF</div>
+                <div style={{ fontSize: 11, color: "#5a4a4a", marginTop: 2 }}>
+                  {limit == null
+                    ? <span style={{ color: "#3a5a3a" }}>∞ Ilimitado</span>
+                    : <span style={{ color: esgotado ? "#ef4444" : "#60a5fa" }}>{uses}/{limit} usos {esgotado ? "— Esgotado" : `— ${limit - uses} restantes`}</span>
+                  }
+                </div>
+              </div>
+              {/* Resetar usos */}
+              {uses > 0 && (
+                <button onClick={() => { saveCoupons({ ...customCoupons, [code]: { pct, limit, uses: 0 } }); showToast(`Usos de ${code} resetados.`); }}
+                  style={{ background: "none", border: "1px solid #1a2a3a", color: "#60a5fa", padding: "5px 10px", borderRadius: 4, cursor: "pointer", fontSize: 11, fontFamily: "Georgia,serif" }}>↺ Reset</button>
+              )}
+              <button onClick={() => { const u = { ...customCoupons }; delete u[code]; saveCoupons(u); showToast(`Cupom ${code} removido.`, "error"); }}
+                style={{ background: "none", border: "1px solid #3a1f1f", color: "#ef4444", padding: "5px 12px", borderRadius: 4, cursor: "pointer", fontSize: 12, fontFamily: "Georgia,serif" }}>🗑 Remover</button>
             </div>
-            <div style={{ flex: 1, fontSize: 14, color: "#4ade80", fontWeight: "bold" }}>{pct}% OFF</div>
-            <button onClick={() => { const u = { ...customCoupons }; delete u[code]; saveCoupons(u); showToast(`Cupom ${code} removido.`, "error"); }}
-              style={{ background: "none", border: "1px solid #3a1f1f", color: "#ef4444", padding: "5px 12px", borderRadius: 4, cursor: "pointer", fontSize: 12, fontFamily: "Georgia,serif" }}>🗑 Remover</button>
-          </div>
-        ))}
+          );
+        })}
         {Object.keys(customCoupons).length === 0 && <p style={{ fontSize: 13, color: "#3a2a2a" }}>Nenhum cupom criado ainda.</p>}
       </div>
     </div>
@@ -1591,6 +1694,143 @@ const GaleriaPanel = ({ supaCfg, wines, setWines, supaFetch, showToast }) => {
   );
 };
 
+// ─── EmailJS utility ──────────────────────────────────────────────────────────
+const getEmailConfig = () => { try { const s = localStorage.getItem("v9_emailjs"); return s ? JSON.parse(s) : null; } catch { return null; } };
+
+const sendEmail = async (templateId, params) => {
+  const cfg = getEmailConfig();
+  if (!cfg?.serviceId || !cfg?.publicKey) return false;
+  const tid = cfg.templates?.[templateId] || cfg[templateId] || "";
+  if (!tid) return false;
+  try {
+    const r = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ service_id: cfg.serviceId, template_id: tid, user_id: cfg.publicKey, template_params: params })
+    });
+    return r.status === 200;
+  } catch { return false; }
+};
+
+// ─── Painel E-mails ───────────────────────────────────────────────────────────
+const EmailPanel = ({ showToast }) => {
+  const [cfg, setCfg] = useState(() => getEmailConfig() || { serviceId: "", publicKey: "", templates: { boasVindas: "", pedidoConfirmado: "", pedidoTransito: "", pedidoEntregue: "", resetSenha: "" } });
+  const [saved, setSaved] = useState(false);
+  const [testing, setTesting] = useState(null);
+  const [testEmail, setTestEmail] = useState("");
+
+  const save = () => { try { localStorage.setItem("v9_emailjs", JSON.stringify(cfg)); setSaved(true); setTimeout(() => setSaved(false), 2000); showToast("Configurações de e-mail salvas! ✅"); } catch {} };
+
+  const testSend = async (templateKey) => {
+    if (!testEmail) return showToast("Informe um e-mail para teste.", "error");
+    setTesting(templateKey);
+    const params = {
+      to_email: testEmail, to_name: "Cliente Teste",
+      store_name: "Vinhos9", order_id: "#0001",
+      order_items: "Vinho Tinto Reserva × 1", order_total: "R$ 149,90",
+      order_date: new Date().toLocaleDateString("pt-BR"),
+      points_earned: "149", points_total: "349",
+      reset_link: window.location.origin + "?reset=true",
+      coupon_code: "BEMVINDO",
+    };
+    const ok = await sendEmail(templateKey, params);
+    showToast(ok ? `E-mail de teste enviado para ${testEmail}! ✅` : "Erro ao enviar. Verifique as credenciais.", ok ? undefined : "error");
+    setTesting(null);
+  };
+
+  const TEMPLATES = [
+    { key: "boasVindas",       icon: "🎉", label: "Boas-vindas",           desc: "Enviado ao criar conta. Inclui cupom BEMVINDO.", vars: "to_email, to_name, store_name, coupon_code" },
+    { key: "pedidoConfirmado", icon: "✅", label: "Pedido Confirmado",      desc: "Enviado ao finalizar a compra.", vars: "to_email, to_name, order_id, order_items, order_total, order_date, points_earned, points_total" },
+    { key: "pedidoTransito",   icon: "🚚", label: "Pedido em Trânsito",     desc: "Enviado quando status muda para Em trânsito.", vars: "to_email, to_name, order_id, order_date" },
+    { key: "pedidoEntregue",   icon: "📦", label: "Pedido Entregue",        desc: "Enviado quando status muda para Entregue.", vars: "to_email, to_name, order_id, order_total, points_earned" },
+    { key: "resetSenha",       icon: "🔑", label: "Redefinição de Senha",   desc: "Enviado ao solicitar nova senha.", vars: "to_email, to_name, reset_link" },
+  ];
+
+  const inp = (label, field, placeholder) => (
+    <div style={{ marginBottom: 14 }}>
+      <label style={{ display: "block", fontSize: 11, color: "#5a4a4a", letterSpacing: 1, textTransform: "uppercase", marginBottom: 5 }}>{label}</label>
+      <input value={cfg[field] || ""} onChange={e => setCfg(p => ({ ...p, [field]: e.target.value }))} placeholder={placeholder}
+        style={{ width: "100%", background: "#0c0a09", border: "1px solid #2a1f1f", borderRadius: 4, padding: "10px 12px", color: "#f5f0e8", fontSize: 13, fontFamily: "monospace", boxSizing: "border-box" }} />
+    </div>
+  );
+
+  return (
+    <div style={{ maxWidth: 700 }}>
+      <h1 style={{ fontSize: 24, marginBottom: 5 }}>📧 Configurar E-mails Automáticos</h1>
+      <p style={{ color: "#7a6a6a", fontSize: 13, marginBottom: 24, lineHeight: 1.7 }}>
+        Use o <a href="https://www.emailjs.com" target="_blank" rel="noreferrer" style={{ color: "#60a5fa" }}>EmailJS</a> para enviar e-mails automáticos sem servidor. Gratuito até 200 e-mails/mês.
+      </p>
+
+      {/* Guia de configuração */}
+      <div style={{ background: "rgba(96,165,250,.06)", border: "1px solid rgba(96,165,250,.2)", borderRadius: 10, padding: 20, marginBottom: 24 }}>
+        <div style={{ fontSize: 12, letterSpacing: 2, color: "#60a5fa", textTransform: "uppercase", marginBottom: 12 }}>📋 Como configurar o EmailJS</div>
+        {[
+          ["1", "Acesse emailjs.com e crie uma conta gratuita"],
+          ["2", "Vá em Email Services → Add New Service → escolha Gmail ou outro"],
+          ["3", "Copie o Service ID e cole abaixo"],
+          ["4", "Vá em Email Templates → Create New Template para cada tipo de e-mail"],
+          ["5", "No template use as variáveis listadas (ex: {{to_name}}, {{order_id}})"],
+          ["6", "Copie o Template ID de cada um e cole nos campos abaixo"],
+          ["7", "Em Account → API Keys copie a Public Key"],
+        ].map(([n, text]) => (
+          <div key={n} style={{ display: "flex", gap: 10, marginBottom: 8, alignItems: "flex-start" }}>
+            <span style={{ background: "#1a2a3a", color: "#60a5fa", borderRadius: "50%", width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, flexShrink: 0 }}>{n}</span>
+            <span style={{ fontSize: 12, color: "#7a6a6a", lineHeight: 1.6 }}>{text}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Credenciais */}
+      <div style={{ background: "linear-gradient(145deg,#1a1410,#120e0c)", border: "1px solid #2a1f1f", borderRadius: 10, padding: 22, marginBottom: 20 }}>
+        <div style={{ fontSize: 12, letterSpacing: 2, color: "#a09080", textTransform: "uppercase", marginBottom: 16 }}>🔑 Credenciais EmailJS</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+          {inp("Service ID", "serviceId", "service_xxxxxxx")}
+          {inp("Public Key", "publicKey", "xxxxxxxxxxxxxxxxxxxxxx")}
+        </div>
+        {/* E-mail de teste */}
+        <div style={{ marginTop: 4, marginBottom: 14 }}>
+          <label style={{ display: "block", fontSize: 11, color: "#5a4a4a", letterSpacing: 1, textTransform: "uppercase", marginBottom: 5 }}>E-mail para teste</label>
+          <input value={testEmail} onChange={e => setTestEmail(e.target.value)} placeholder="seu@email.com"
+            style={{ width: "100%", background: "#0c0a09", border: "1px solid #2a1f1f", borderRadius: 4, padding: "10px 12px", color: "#f5f0e8", fontSize: 13, fontFamily: "Georgia,serif", boxSizing: "border-box" }} />
+        </div>
+        <button onClick={save}
+          style={{ padding: "10px 24px", background: saved ? "#1a3a1a" : "#8b2c2c", border: "none", borderRadius: 4, color: saved ? "#4ade80" : "#fff", cursor: "pointer", fontSize: 13, fontFamily: "Georgia,serif", letterSpacing: 1, transition: "all .3s" }}>
+          {saved ? "✅ Salvo!" : "💾 Salvar Credenciais"}
+        </button>
+      </div>
+
+      {/* Templates */}
+      <div style={{ fontSize: 12, letterSpacing: 2, color: "#a09080", textTransform: "uppercase", marginBottom: 16 }}>📨 Templates de E-mail</div>
+      {TEMPLATES.map(({ key, icon, label, desc, vars }) => (
+        <div key={key} style={{ background: "linear-gradient(145deg,#1a1410,#120e0c)", border: "1px solid #2a1f1f", borderRadius: 10, padding: 20, marginBottom: 14 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
+            <div>
+              <div style={{ fontSize: 14, color: "#f5f0e8", marginBottom: 4 }}>{icon} {label}</div>
+              <div style={{ fontSize: 11, color: "#5a4a4a", marginBottom: 6 }}>{desc}</div>
+              <div style={{ fontSize: 10, color: "#3a2a3a", background: "#1a0e1a", borderRadius: 4, padding: "4px 8px", fontFamily: "monospace" }}>
+                Variáveis: {vars}
+              </div>
+            </div>
+            <button onClick={() => testSend(key)} disabled={testing === key || !cfg.serviceId || !cfg.publicKey}
+              style={{ padding: "7px 14px", background: testing === key ? "#2a1f2a" : "#1a1a2a", border: "1px solid #3a3a5a", borderRadius: 4, color: testing === key ? "#5a4a5a" : "#a0a0e8", cursor: testing === key ? "not-allowed" : "pointer", fontSize: 11, fontFamily: "Georgia,serif", whiteSpace: "nowrap" }}>
+              {testing === key ? "⏳ Enviando…" : "🧪 Testar"}
+            </button>
+          </div>
+          <div>
+            <label style={{ display: "block", fontSize: 10, color: "#5a4a4a", letterSpacing: 1, textTransform: "uppercase", marginBottom: 5 }}>Template ID</label>
+            <input value={cfg.templates?.[key] || ""} onChange={e => setCfg(p => ({ ...p, templates: { ...p.templates, [key]: e.target.value } }))} placeholder="template_xxxxxxx"
+              style={{ width: "100%", background: "#0c0a09", border: `1px solid ${cfg.templates?.[key] ? "#2a3a2a" : "#2a1f1f"}`, borderRadius: 4, padding: "9px 12px", color: cfg.templates?.[key] ? "#4ade80" : "#7a6a6a", fontSize: 13, fontFamily: "monospace", boxSizing: "border-box" }} />
+          </div>
+        </div>
+      ))}
+      <button onClick={save}
+        style={{ width: "100%", padding: "12px", background: "#8b2c2c", border: "none", borderRadius: 4, color: "#fff", cursor: "pointer", fontSize: 13, fontFamily: "Georgia,serif", letterSpacing: 2, textTransform: "uppercase" }}>
+        💾 Salvar Todas as Configurações
+      </button>
+    </div>
+  );
+};
+
 const SegurancaPanel = ({ showToast }) => {
   const [newUser, setNewUser] = useState("");
   const [newPass, setNewPass] = useState("");
@@ -1669,6 +1909,7 @@ export default function App() {
   const [wines, setWines] = useState(INITIAL_WINES);
   const [cart, setCart] = useState([]);
   const [filter, setFilter] = useState("Todos");
+  const [countryFilter, setCountryFilter] = useState("Todos");
   const [search, setSearch] = useState("");
   const [cartOpen, setCartOpen] = useState(false);
   const [selectedWine, setSelectedWine] = useState(null);
@@ -1688,9 +1929,26 @@ export default function App() {
   // 🎁 Cupons — agora editáveis
   const [couponInput, setCouponInput] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState(null);
-  const [customCoupons, setCustomCoupons] = useState(() => { try { const s = localStorage.getItem("v9_coupons"); return s ? JSON.parse(s) : { "VINO10": 10, "VINO20": 20, "BEMVINDO": 5 }; } catch { return { "VINO10": 10, "VINO20": 20, "BEMVINDO": 5 }; } });
+  const [customCoupons, setCustomCoupons] = useState(() => {
+    try {
+      const s = localStorage.getItem("v9_coupons");
+      if (s) {
+        const parsed = JSON.parse(s);
+        // migrar formato antigo { CODE: 10 } para novo { CODE: { pct, limit, uses } }
+        const migrated = {};
+        Object.entries(parsed).forEach(([k, v]) => {
+          migrated[k] = typeof v === "object" ? v : { pct: v, limit: null, uses: 0 };
+        });
+        return migrated;
+      }
+    } catch {}
+    return { "VINO10": { pct: 10, limit: null, uses: 0 }, "VINO20": { pct: 20, limit: null, uses: 0 }, "BEMVINDO": { pct: 5, limit: null, uses: 0 } };
+  });
   const COUPONS = customCoupons;
   const saveCoupons = (c) => { setCustomCoupons(c); try { localStorage.setItem("v9_coupons", JSON.stringify(c)); } catch {} };
+  // Helper para pegar % do cupom
+  const couponPct = (code) => { const c = COUPONS[code]; return c ? (typeof c === "object" ? c.pct : c) : 0; };
+  const couponValid = (code) => { const c = COUPONS[code]; if (!c) return false; if (typeof c !== "object") return true; return c.limit == null || c.uses < c.limit; };
   // 🚚 Frete configurável
   const [freteConfig, setFreteConfig] = useState(() => { try { const s = localStorage.getItem("v9_frete"); return s ? JSON.parse(s) : { opcoes: [{ id: "pac", nome: "PAC", icon: "📦", prazo: "5 dias úteis", base: 18 }, { id: "sedex", nome: "SEDEX", icon: "⚡", prazo: "2 dias úteis", base: 32 }, { id: "gratis", nome: "Frete Grátis", icon: "🎁", prazo: "7 dias úteis", base: 0, minValue: 500 }] }; } catch { return { opcoes: [] }; } });
   const saveFreteConfig = (cfg) => { setFreteConfig(cfg); try { localStorage.setItem("v9_frete", JSON.stringify(cfg)); } catch {} };
@@ -1920,7 +2178,24 @@ export default function App() {
     return (
       <div className="form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
         {inp("name",    "Nome do Vinho",    "text",   true)}
-        {inp("origin",  "País de Origem",   "text",   false)}
+        {/* País de Origem — dropdown com países comuns + opção personalizada */}
+        <div>
+          <label style={{ display: "block", fontSize: 9, letterSpacing: 2, color: "#5a4a4a", textTransform: "uppercase", marginBottom: 5 }}>País de Origem</label>
+          <select value={["Argentina","Brasil","Chile","Portugal","França","Itália","Espanha","África do Sul","EUA","Uruguai","Austrália","Alemanha","Outro"].includes(obj.origin) || !obj.origin ? (obj.origin || "") : "Outro"}
+            onChange={e => setObj(p => ({ ...p, origin: e.target.value === "Outro" ? "" : e.target.value }))}
+            style={{ width: "100%", background: "#120e0c", border: "1px solid #2a1f1f", borderRadius: 4, padding: "9px 11px", color: "#f5f0e8", fontSize: 13, fontFamily: "Georgia,serif", marginBottom: 6 }}>
+            <option value="">Selecione…</option>
+            {["🇦🇷 Argentina","🇧🇷 Brasil","🇨🇱 Chile","🇵🇹 Portugal","🇫🇷 França","🇮🇹 Itália","🇪🇸 Espanha","🇿🇦 África do Sul","🇺🇸 EUA","🇺🇾 Uruguai","🇦🇺 Austrália","🇩🇪 Alemanha"].map(p => {
+              const name = p.split(" ").slice(1).join(" ");
+              return <option key={name} value={name}>{p}</option>;
+            })}
+            <option value="Outro">✏️ Outro país…</option>
+          </select>
+          {(["Argentina","Brasil","Chile","Portugal","França","Itália","Espanha","África do Sul","EUA","Uruguai","Austrália","Alemanha"].includes(obj.origin) ? false : obj.origin !== undefined) && (
+            <input type="text" value={obj.origin || ""} onChange={e => setObj(p => ({ ...p, origin: e.target.value }))} placeholder="Ex: Nova Zelândia"
+              style={{ width: "100%", background: "#120e0c", border: "1px solid #2a1f1f", borderRadius: 4, padding: "9px 11px", color: "#f5f0e8", fontSize: 13, fontFamily: "Georgia,serif" }} />
+          )}
+        </div>
         {inp("region",  "Região",           "text",   false)}
         {inp("year",    "Safra",            "number", false)}
         {inp("costPrice","Preço de Custo (R$)","number",false)}
@@ -2022,12 +2297,14 @@ export default function App() {
   const removeFromCart = (id) => setCart((prev) => prev.filter((i) => i.id !== id));
   const cartTotal = cart.reduce((s, i) => s + (i.promoPrice || i.price) * i.qty, 0);
   const cartCount = cart.reduce((s, i) => s + i.qty, 0);
-  const discountAmt = appliedCoupon ? Math.round(cartTotal * (COUPONS[appliedCoupon] / 100)) : 0;
+  const discountAmt = appliedCoupon ? Math.round(cartTotal * (couponPct(appliedCoupon) / 100)) : 0;
   const cartFinal = cartTotal - discountAmt;
   const handleApplyCoupon = () => {
     const code = couponInput.trim().toUpperCase();
-    if (COUPONS[code]) { setAppliedCoupon(code); showToast(`Cupom ${code} aplicado! ${COUPONS[code]}% de desconto 🎉`); }
-    else showToast("Cupom inválido ou expirado.", "error");
+    if (!COUPONS[code]) { showToast("Cupom inválido ou expirado.", "error"); return; }
+    if (!couponValid(code)) { showToast(`Cupom ${code} atingiu o limite de usos.`, "error"); return; }
+    setAppliedCoupon(code);
+    showToast(`Cupom ${code} aplicado! ${couponPct(code)}% de desconto 🎉`);
   };
   const handleAddWine = async () => {
     if (!newWine.name || !newWine.price) return showToast("Preencha nome e preço de venda.", "error");
@@ -2152,7 +2429,8 @@ export default function App() {
     const base = wines.filter((w) => {
       const activePrice = w.promoPrice || w.price;
       return (filter === "Todos" || w.category === filter)
-        && (w.name.toLowerCase().includes(search.toLowerCase()) || w.origin.toLowerCase().includes(search.toLowerCase()))
+        && (countryFilter === "Todos" || (w.origin || "").toLowerCase() === countryFilter.toLowerCase())
+        && (w.name.toLowerCase().includes(search.toLowerCase()) || (w.origin || "").toLowerCase().includes(search.toLowerCase()))
         && activePrice >= priceRange[0] && activePrice <= priceRange[1];
     });
     if (sortBy === "price_asc") return [...base].sort((a,b) => (a.promoPrice||a.price)-(b.promoPrice||b.price));
@@ -2168,7 +2446,7 @@ export default function App() {
     setCatalogLoading(true);
     const t = setTimeout(() => setCatalogLoading(false), 380);
     return () => clearTimeout(t);
-  }, [filter, search, sortBy, priceRange[0], priceRange[1]]);
+  }, [filter, countryFilter, search, sortBy, priceRange[0], priceRange[1]]);
 
   // SEO: update title and keywords meta when product is selected
   useEffect(() => {
@@ -2449,6 +2727,26 @@ export default function App() {
               <div className="cat-btns" style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
                 {CATEGORIES.map((c) => <button key={c} onClick={() => setFilter(c)} style={{ padding: "6px 13px", borderRadius: 4, border: `1px solid ${filter === c ? "#8b2c2c" : "#2a1f1f"}`, background: filter === c ? "#8b2c2c" : "transparent", color: filter === c ? "#fff" : "#a09080", cursor: "pointer", fontSize: 11, letterSpacing: 1, fontFamily: "Georgia,serif", transition: "all .2s" }}>{c}</button>)}
               </div>
+              {/* Filtro por País — dinâmico baseado nos vinhos cadastrados */}
+              {(() => {
+                const countries = ["Todos", ...Array.from(new Set(wines.map(w => w.origin).filter(Boolean).map(o => o.trim()))).sort()];
+                if (countries.length <= 2) return null; // só mostra se tiver mais de 1 país
+                return (
+                  <div style={{ display: "flex", gap: 7, flexWrap: "wrap", paddingTop: 4 }}>
+                    <span style={{ fontSize: 9, letterSpacing: 2, color: "#5a4a4a", textTransform: "uppercase", alignSelf: "center", paddingRight: 4 }}>País</span>
+                    {countries.map(c => {
+                      const flag = { "Argentina": "🇦🇷", "Brasil": "🇧🇷", "Chile": "🇨🇱", "Portugal": "🇵🇹", "França": "🇫🇷", "France": "🇫🇷", "Italy": "🇮🇹", "Itália": "🇮🇹", "Spain": "🇪🇸", "Espanha": "🇪🇸", "África do Sul": "🇿🇦", "South Africa": "🇿🇦", "EUA": "🇺🇸", "USA": "🇺🇸", "Uruguai": "🇺🇾", "Austrália": "🇦🇺", "Alemanha": "🇩🇪" }[c] || (c === "Todos" ? "🌍" : "🍷");
+                      const active = countryFilter === c;
+                      return (
+                        <button key={c} onClick={() => setCountryFilter(c)}
+                          style={{ padding: "5px 12px", borderRadius: 4, border: `1px solid ${active ? "#6b4c9a" : "#2a1f1f"}`, background: active ? "#6b4c9a" : "transparent", color: active ? "#fff" : "#a09080", cursor: "pointer", fontSize: 11, letterSpacing: 1, fontFamily: "Georgia,serif", transition: "all .2s" }}>
+                          {flag} {c}
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
               {/* Ordenação */}
               <select value={sortBy} onChange={e => setSortBy(e.target.value)}
                 style={{ padding: "7px 12px", background: sortBy !== "default" ? "#8b2c2c" : "#1a1410", border: `1px solid ${sortBy !== "default" ? "#8b2c2c" : "#2a1f1f"}`, borderRadius: 4, color: "#f5f0e8", fontSize: 11, fontFamily: "Georgia,serif", cursor: "pointer" }}>
@@ -2690,7 +2988,7 @@ export default function App() {
                   </div>
                 ) : (
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, padding: "8px 12px", background: "rgba(74,222,128,.07)", border: "1px solid rgba(74,222,128,.2)", borderRadius: 6 }}>
-                    <span style={{ fontSize: 11, color: "#4ade80" }}>🎁 {appliedCoupon} · -{COUPONS[appliedCoupon]}%</span>
+                    <span style={{ fontSize: 11, color: "#4ade80" }}>🎁 {appliedCoupon} · -{couponPct(appliedCoupon)}%</span>
                     <button onClick={() => { setAppliedCoupon(null); setCouponInput(""); }} style={{ background: "none", border: "none", color: "#5a4a4a", cursor: "pointer", fontSize: 10, fontFamily: "Georgia,serif" }}>remover</button>
                   </div>
                 )}
@@ -2701,7 +2999,7 @@ export default function App() {
                 </div>
                 {appliedCoupon && (
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14 }}>
-                    <span style={{ color: "#4ade80", fontSize: 12 }}>Desconto ({COUPONS[appliedCoupon]}%)</span>
+                    <span style={{ color: "#4ade80", fontSize: 12 }}>Desconto ({couponPct(appliedCoupon)}%)</span>
                     <span style={{ fontSize: 13, color: "#4ade80" }}>-{fmt(discountAmt)}</span>
                   </div>
                 )}
@@ -2948,10 +3246,12 @@ export default function App() {
                   <button onClick={() => setCheckoutStep(1)} style={{ flex: 1, padding: "12px", background: "none", border: "1px solid #2a1f1f", borderRadius: 4, color: "#a09080", cursor: "pointer", fontSize: 11, fontFamily: "Georgia,serif" }}>← Editar</button>
                   <button onClick={async () => {
                     setCheckoutStep(3);
+                    const loggedClient = (() => { try { return JSON.parse(localStorage.getItem("v9_client") || "null"); } catch { return null; } })();
                     const order = {
                       customer: checkoutData.nome,
                       cpf: checkoutData.cpf,
                       contact: checkoutData.contato,
+                      email: loggedClient?.email || (checkoutData.contato.includes("@") ? checkoutData.contato : null),
                       address: `${checkoutData.rua}, ${checkoutData.numero}${checkoutData.complemento ? " — "+checkoutData.complemento : ""}, ${checkoutData.bairro}, ${checkoutData.cidade} ${checkoutData.uf} — CEP ${checkoutData.cep}`,
                       items: cart.map(i => `${i.name} × ${i.qty}`).join(", "),
                       total: cartFinal,
@@ -2961,6 +3261,39 @@ export default function App() {
                     };
                     await dbInsertOrder(order);
                     setOrders(prev => [{ ...order, id: `#${Date.now()}` }, ...prev]);
+                    // Incrementa uso do cupom se aplicado
+                    if (appliedCoupon && COUPONS[appliedCoupon]) {
+                      const c = COUPONS[appliedCoupon];
+                      const updated = { ...customCoupons, [appliedCoupon]: { ...(typeof c === "object" ? c : { pct: c, limit: null }), uses: ((typeof c === "object" ? c.uses : 0) || 0) + 1 } };
+                      saveCoupons(updated);
+                    }
+                    // Adiciona pontos ao cliente logado (R$1 = 1 ponto)
+                    try {
+                      const savedClient = JSON.parse(localStorage.getItem("v9_client") || "null");
+                      if (savedClient) {
+                        const pts = Math.floor(cartFinal);
+                        const orderId = `#${Date.now()}`;
+                        const updatedClient = {
+                          ...savedClient,
+                          points: (savedClient.points || 0) + pts,
+                          tier: (savedClient.points || 0) + pts >= 5000 ? "Gold" : (savedClient.points || 0) + pts >= 2000 ? "Silver" : "Bronze",
+                          orders: [{ id: orderId, date: new Date().toLocaleDateString("pt-BR"), items: cart.map(i => `${i.name} × ${i.qty}`).join(", "), total: cartFinal, status: "Aguardando", pts }, ...(savedClient.orders || [])],
+                          pointsHistory: [{ date: new Date().toLocaleDateString("pt-BR"), desc: `Compra ${orderId}`, pts }, ...(savedClient.pointsHistory || [])],
+                        };
+                        localStorage.setItem("v9_client", JSON.stringify(updatedClient));
+                        try { const db = JSON.parse(localStorage.getItem("v9_clients_db") || "{}"); db[updatedClient.id] = updatedClient; localStorage.setItem("v9_clients_db", JSON.stringify(db)); } catch {}
+                        showToast(`+${pts} pontos adicionados à sua conta! 🪙`);
+                        // E-mail pedido confirmado
+                        sendEmail("pedidoConfirmado", {
+                          to_email: savedClient.email, to_name: savedClient.name,
+                          store_name: "Vinhos9", order_id: orderId,
+                          order_items: cart.map(i => `${i.name} × ${i.qty}`).join(", "),
+                          order_total: cartFinal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
+                          order_date: new Date().toLocaleDateString("pt-BR"),
+                          points_earned: pts, points_total: updatedClient.points,
+                        });
+                      }
+                    } catch {}
                     setTimeout(() => { setCart([]); setAppliedCoupon(null); setCouponInput(""); setCheckoutData(emptyCheckout); }, 2200);
                     setTimeout(() => { setCheckoutOpen(false); setCheckoutStep(1); showToast("Pedido confirmado! Entraremos em contato. 🎉"); }, 4000);
                   }} style={{ flex: 2, padding: "12px", background: "#8b2c2c", border: "none", borderRadius: 4, color: "#fff", cursor: "pointer", fontSize: 12, fontFamily: "Georgia,serif", letterSpacing: 2, textTransform: "uppercase" }}>
@@ -3019,7 +3352,7 @@ export default function App() {
               <div style={{ fontSize: 12, color: "#e8b4b4" }}>Administração</div>
             </div>
             <div style={{ flex: 1, overflowX: "auto", overflowY: "auto", display: "flex", flexDirection: "column" }} className="adm-tabs-wrap">
-            {[["dashboard","📊","Dashboard"],["wines","🍷","Vinhos"],["add","➕","Cadastrar"],["csv","📥","Importar CSV"],["banners","🎨","Banners"],["promos","🏷","Promoções"],["cupons","🎁","Cupons"],["frete","🚚","Frete"],["imagens","🖼","Galeria"],["orders","📦","Pedidos"],["reviews","⭐","Avaliações"],["pagamento","💳","Pagamento"],["supabase","🗄️","Banco de Dados"],["seguranca","🔐","Segurança"]].map(([tab, icon, label]) => (
+            {[["dashboard","📊","Dashboard"],["wines","🍷","Vinhos"],["add","➕","Cadastrar"],["csv","📥","Importar CSV"],["banners","🎨","Banners"],["promos","🏷","Promoções"],["cupons","🎁","Cupons"],["frete","🚚","Frete"],["imagens","🖼","Galeria"],["orders","📦","Pedidos"],["reviews","⭐","Avaliações"],["emails","📧","E-mails"],["pagamento","💳","Pagamento"],["supabase","🗄️","Banco de Dados"],["seguranca","🔐","Segurança"]].map(([tab, icon, label]) => (
               <button key={tab} className="adm-tab" onClick={() => setAdminTab(tab)} style={{ width: "100%", padding: "12px 18px", display: "flex", alignItems: "center", gap: 9, background: adminTab === tab ? "rgba(139,44,44,.3)" : "transparent", border: "none", color: adminTab === tab ? "#e8b4b4" : "#7a6a6a", cursor: "pointer", fontSize: 12, fontFamily: "Georgia,serif", textAlign: "left", borderLeft: adminTab === tab ? "3px solid #8b2c2c" : "3px solid transparent", transition: "all .2s" }}>
                 {icon} {label}
                 {tab === "promos" && promoWines.length > 0 && <span style={{ background: "#b45309", color: "#fef3c7", fontSize: 9, padding: "1px 6px", borderRadius: 10, marginLeft: "auto" }}>{promoWines.length}</span>}
@@ -3374,17 +3707,44 @@ export default function App() {
                 <p style={{ color: "#7a6a6a", fontSize: 11, marginBottom: 24 }}>{Array.isArray(orders) ? orders.length : 0} pedidos recentes</p>
                 <div style={{ background: "linear-gradient(145deg,#1a1410,#120e0c)", border: "1px solid #2a1f1f", borderRadius: 10, overflow: "auto" }}>
                   <table className="tbl" style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-                    <thead><tr style={{ background: "#120e0c" }}>{["Pedido","Cliente","Vinho","Qtd","Total","Data","Status"].map((h) => <th key={h} style={{ padding: "11px 12px", textAlign: "left", fontSize: 8, letterSpacing: 2, color: "#5a4a4a", textTransform: "uppercase", borderBottom: "1px solid #2a1f1f" }}>{h}</th>)}</tr></thead>
+                    <thead><tr style={{ background: "#120e0c" }}>{["Pedido","Cliente","Itens","Total","Data","Status"].map((h) => <th key={h} style={{ padding: "11px 12px", textAlign: "left", fontSize: 8, letterSpacing: 2, color: "#5a4a4a", textTransform: "uppercase", borderBottom: "1px solid #2a1f1f" }}>{h}</th>)}</tr></thead>
                     <tbody>
                       {(Array.isArray(orders) ? orders : []).map((o, i) => (
                         <tr key={o.id} style={{ borderBottom: "1px solid #1a1410", background: i % 2 === 0 ? "transparent" : "rgba(255,255,255,.01)" }}>
                           <td style={{ padding: "9px 12px", color: "#e8b4b4" }}>{o.id}</td>
                           <td style={{ padding: "9px 12px", color: "#f5f0e8" }}>{o.customer}</td>
-                          <td style={{ padding: "9px 12px", color: "#a09080" }}>{o.wine}</td>
-                          <td style={{ padding: "9px 12px", color: "#a09080" }}>{o.qty}</td>
+                          <td style={{ padding: "9px 12px", color: "#a09080", maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.items || o.wine}</td>
                           <td style={{ padding: "9px 12px", color: "#e8b4b4" }}>{fmt(o.total)}</td>
                           <td style={{ padding: "9px 12px", color: "#7a6a6a" }}>{o.date}</td>
-                          <td style={{ padding: "9px 12px" }}><span style={{ background: o.status === "Entregue" ? "#1a3a1a" : o.status === "Em trânsito" ? "#1a2a3a" : "#2a2a1a", color: o.status === "Entregue" ? "#4ade80" : o.status === "Em trânsito" ? "#60a5fa" : "#fbbf24", padding: "2px 9px", borderRadius: 10, fontSize: 10 }}>{o.status}</span></td>
+                          <td style={{ padding: "9px 12px" }}>
+                            <select value={o.status} onChange={async (e) => {
+                              const novoStatus = e.target.value;
+                              const atualizado = { ...o, status: novoStatus };
+                              setOrders(prev => prev.map(x => x.id === o.id ? atualizado : x));
+                              // Atualiza no Supabase se tiver id numérico
+                              if (o.id && !String(o.id).startsWith("#")) {
+                                await supaFetch(`/rest/v1/orders?id=eq.${o.id}`, "PATCH", { status: novoStatus });
+                              }
+                              // Dispara e-mail ao cliente se tiver e-mail no pedido
+                              const clientEmail = o.contact || o.email;
+                              if (clientEmail && clientEmail.includes("@")) {
+                                if (novoStatus === "Em trânsito") {
+                                  sendEmail("pedidoTransito", { to_email: clientEmail, to_name: o.customer, store_name: "Vinhos9", order_id: o.id, order_date: o.date });
+                                  showToast(`📧 E-mail "Em trânsito" enviado para ${clientEmail}`);
+                                } else if (novoStatus === "Entregue") {
+                                  sendEmail("pedidoEntregue", { to_email: clientEmail, to_name: o.customer, store_name: "Vinhos9", order_id: o.id, order_total: fmt(o.total), points_earned: Math.floor(o.total) });
+                                  showToast(`📧 E-mail "Entregue" enviado para ${clientEmail}`);
+                                }
+                              } else {
+                                showToast(`Status atualizado para "${novoStatus}"`);
+                              }
+                            }}
+                              style={{ background: o.status === "Entregue" ? "#1a3a1a" : o.status === "Em trânsito" ? "#1a2a3a" : "#2a2a1a", color: o.status === "Entregue" ? "#4ade80" : o.status === "Em trânsito" ? "#60a5fa" : "#fbbf24", border: "none", borderRadius: 10, padding: "3px 10px", fontSize: 10, cursor: "pointer", fontFamily: "Georgia,serif" }}>
+                              <option value="Aguardando">Aguardando</option>
+                              <option value="Em trânsito">Em trânsito</option>
+                              <option value="Entregue">Entregue</option>
+                            </select>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -3570,6 +3930,7 @@ export default function App() {
             {/* 🗄️ Banco de Dados — Supabase */}
             {adminTab === "supabase" && <SupabasePanel supaCfg={supaCfg} supaConnected={supaConnected} supaStatus={supaStatus} testSupaConnection={testSupaConnection} loadFromSupabase={loadFromSupabase} showToast={showToast} />}
 
+            {adminTab === "emails" && <EmailPanel showToast={showToast} />}
             {adminTab === "seguranca" && <SegurancaPanel showToast={showToast} />}
 
             {/* 🖼 Galeria de Imagens */}
