@@ -2962,7 +2962,8 @@ export default function App() {
     const base = { ...newWine, price: +newWine.price, costPrice: +newWine.costPrice || 0, promoPrice: newWine.promoPrice ? +newWine.promoPrice : null, stock: +newWine.stock || 0, year: +newWine.year || "", sales: 0, rating: 4.5 };
     const saved = await dbAddWine(base);
     if (saved) {
-      setWines((p) => [...p, saved]);
+      setWines((p) => [saved, ...p]); // vai para o INÍCIO da lista
+      setAdmWinePage(1);              // volta para a página 1 para ver o novo vinho
       showToast("Vinho cadastrado e salvo no banco! ✅");
     } else {
       showToast("Erro ao salvar no banco. Verifique a conexão Supabase.", "error");
@@ -3360,7 +3361,7 @@ export default function App() {
                 </div>
                 <div className="scroll-row">
                   {promoWines.map((wine) => (
-                    <div key={wine.id} onClick={() => setSelectedWine(wine)} style={{ cursor: "pointer", background: "linear-gradient(145deg,#1e1500,#150e00)", border: "1px solid #3a2a00", borderRadius: 12, overflow: "hidden", flexShrink: 0, width: 200, transition: "all .25s" }}
+                    <div key={wine.id} onClick={() => { setSelectedWine(wine); window.scrollTo({ top: 0, behavior: "smooth" }); }} style={{ cursor: "pointer", background: "linear-gradient(145deg,#1e1500,#150e00)", border: "1px solid #3a2a00", borderRadius: 12, overflow: "hidden", flexShrink: 0, width: 200, transition: "all .25s" }}
                       onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = "0 12px 36px rgba(180,83,9,.25)"; }}
                       onMouseLeave={(e) => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = ""; }}>
                       <div style={{ width: "100%", aspectRatio: "1/1", position: "relative", overflow: "hidden" }}>
@@ -3400,15 +3401,15 @@ export default function App() {
                 </button>
               </div>
 
-              {/* 4: Recém Chegados — carrossel animado com swipe */}
+              {/* 4: Recém Chegados — carrossel animado com swipe, 6 itens aleatórios */}
               {wines.length > 0 && (
                 <HomeCarousel
-                  items={[...wines].reverse().slice(0, 9)}
+                  items={[...wines].sort(() => Math.random() - 0.5).slice(0, 6)}
                   title="🆕 Recém Chegados"
                   subtitle="Novidades"
                   accentColor="#e8b4b4"
                   badge={{ bg: "rgba(96,165,250,.85)", text: "NOVO" }}
-                  onSelect={setSelectedWine}
+                  onSelect={(wine) => { setSelectedWine(wine); window.scrollTo({ top: 0, behavior: "smooth" }); }}
                   addToCart={addToCart}
                 />
               )}
@@ -3421,7 +3422,7 @@ export default function App() {
                   subtitle="Favoritos dos clientes"
                   accentColor="#fbbf24"
                   badge={{ bg: "rgba(180,83,9,.85)", text: (wine) => `${wine.sales} vendas` }}
-                  onSelect={setSelectedWine}
+                  onSelect={(wine) => { setSelectedWine(wine); window.scrollTo({ top: 0, behavior: "smooth" }); }}
                   addToCart={addToCart}
                 />
               )}
@@ -3554,7 +3555,7 @@ export default function App() {
                 const activePrice = wine.promoPrice || wine.price;
                 const isWishlisted = wishlist.includes(wine.id);
                 return (
-                  <div key={wine.id} className="wine-card" onClick={() => setSelectedWine(wine)} style={{ background: "linear-gradient(145deg,#1a1410,#120e0c)", border: "1px solid #2a1f1f", borderRadius: 12, overflow: "hidden", animation: `fadeIn .4s ease ${i * .05}s both`, position: "relative" }}>
+                  <div key={wine.id} className="wine-card" onClick={() => { setSelectedWine(wine); window.scrollTo({ top: 0, behavior: "smooth" }); }} style={{ background: "linear-gradient(145deg,#1a1410,#120e0c)", border: "1px solid #2a1f1f", borderRadius: 12, overflow: "hidden", animation: `fadeIn .4s ease ${i * .05}s both`, position: "relative" }}>
                     {/* Imagem quadrada 1:1 */}
                     <div style={{ width: "100%", aspectRatio: "1/1", position: "relative", overflow: "hidden" }}>
                       <WineThumb wine={wine} height="100%" />
