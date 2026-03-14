@@ -883,8 +883,8 @@ const ClientAccountPanel = ({ wines, addToCart, setSelectedWine, setPage, onClos
   const tierColor = { Gold: "#fbbf24", Silver: "#c0c0c0", Bronze: "#cd7f32" }[client?.tier] || "#e8b4b4";
   const wishlistWines = wines.filter(w => wishlist.includes(w.id));
 
-  const getTier = (pts) => pts >= 5000 ? "Gold" : pts >= 2000 ? "Silver" : "Bronze";
-  const tierMeta = { Bronze: { next: "Silver", needed: 2000 }, Silver: { next: "Gold", needed: 5000 }, Gold: { next: null, needed: 5000 } };
+  const getTier = (pts) => pts >= 20000 ? "Gold" : pts >= 5000 ? "Silver" : "Bronze";
+  const tierMeta = { Bronze: { next: "Silver", needed: 5000 }, Silver: { next: "Gold", needed: 20000 }, Gold: { next: null, needed: 20000 } };
 
   const handleLogin = () => {
     if (!loginEmail || !loginPwd) { setAuthError("Preencha e-mail e senha."); return; }
@@ -1134,7 +1134,7 @@ const ClientAccountPanel = ({ wines, addToCart, setSelectedWine, setPage, onClos
               </div>
             )}
             <div style={{ background: "rgba(139,44,44,.07)", border: "1px solid rgba(139,44,44,.2)", borderRadius: 6, padding: "10px 13px", marginBottom: 18, fontSize: 11, color: "#8b6060", lineHeight: 1.6 }}>
-              🎁 Ganhe <strong style={{ color: "#e8b4b4" }}>200 pontos</strong> + cupom <strong style={{ color: "#fbbf24" }}>BEMVINDO</strong> com 15% OFF na primeira compra.
+              🎁 Ganhe <strong style={{ color: "#e8b4b4" }}>200 pontos</strong> + cupom <strong style={{ color: "#fbbf24" }}>BEMVINDO</strong> com 5% OFF na primeira compra.
             </div>
             <button onClick={handleRegister}
               disabled={pwdScore < 3}
@@ -1216,7 +1216,7 @@ const ClientAccountPanel = ({ wines, addToCart, setSelectedWine, setPage, onClos
               <div style={{ background: "linear-gradient(145deg,#1a1a0e,#12100a)", border: "1px solid #3a3a1a", borderRadius: 10, padding: "20px 18px", marginBottom: 16 }}>
                 <div style={{ fontSize: 10, letterSpacing: 2, color: "#7a7a2a", textTransform: "uppercase", marginBottom: 8 }}>Saldo de Pontos</div>
                 <div style={{ fontSize: 36, color: "#fbbf24", fontWeight: "bold", marginBottom: 4 }}>{(client?.points || 0).toLocaleString("pt-BR")} <span style={{ fontSize: 14, color: "#7a7a2a" }}>pts</span></div>
-                <div style={{ fontSize: 11, color: "#5a5a2a", marginBottom: 12 }}>R$ 1 gasto = 1 ponto</div>
+                <div style={{ fontSize: 11, color: "#5a5a2a", marginBottom: 12 }}>R$ 1 gasto = 100 pontos</div>
                 {/* Barra de nível */}
                 {(() => {
                   const pts = client?.points || 0;
@@ -1391,16 +1391,21 @@ const CartFreteSelector = ({ freteConfig, cartTotal, freteEscolhido, setFreteEsc
     <div style={{ marginBottom: 14 }}>
       <div style={{ fontSize: 10, letterSpacing: 2, color: "#a09080", textTransform: "uppercase", marginBottom: 10 }}>🚚 Frete & Entrega</div>
 
-      {/* Barra frete grátis */}
-      {faltaGratis > 0 && (
-        <div style={{ marginBottom: 10, background: "rgba(251,191,36,.07)", border: "1px solid rgba(251,191,36,.2)", borderRadius: 6, padding: "8px 12px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#fbbf24", marginBottom: 5 }}>
-            <span>Frete grátis acima de {fmt(freteGratis.minValue)}</span>
-            <span>Falta {fmt(faltaGratis)}</span>
+      {/* Barra frete grátis — sempre visível quando opção configurada */}
+      {freteGratis && (
+        <div style={{ marginBottom: 12, background: faltaGratis === 0 ? "rgba(74,222,128,.09)" : "rgba(251,191,36,.07)", border: `1px solid ${faltaGratis === 0 ? "rgba(74,222,128,.3)" : "rgba(251,191,36,.2)"}`, borderRadius: 8, padding: "10px 12px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: faltaGratis === 0 ? "#4ade80" : "#fbbf24", marginBottom: 6 }}>
+            <span>{faltaGratis === 0 ? "🎉 Frete grátis desbloqueado!" : `Frete grátis acima de ${fmt(freteGratis.minValue)}`}</span>
+            {faltaGratis > 0 && <span style={{ fontWeight: "bold" }}>Falta {fmt(faltaGratis)}</span>}
           </div>
-          <div style={{ height: 4, background: "#2a2a10", borderRadius: 2, overflow: "hidden" }}>
-            <div style={{ height: "100%", width: `${Math.min(100,(cartTotal/freteGratis.minValue)*100)}%`, background: "linear-gradient(to right,#b45309,#fbbf24)", borderRadius: 2, transition: "width .4s" }} />
+          <div style={{ height: 5, background: "#2a2a10", borderRadius: 3, overflow: "hidden" }}>
+            <div style={{ height: "100%", width: `${Math.min(100, (cartTotal / freteGratis.minValue) * 100)}%`, background: faltaGratis === 0 ? "linear-gradient(to right,#166534,#4ade80)" : "linear-gradient(to right,#b45309,#fbbf24)", borderRadius: 3, transition: "width .5s ease" }} />
           </div>
+          {faltaGratis > 0 && (
+            <div style={{ fontSize: 10, color: "#8a7a5a", marginTop: 5 }}>
+              Adicione mais {fmt(faltaGratis)} em produtos para ganhar frete grátis ({freteGratis.prazo || "7 dias úteis"})
+            </div>
+          )}
         </div>
       )}
 
@@ -2457,6 +2462,9 @@ export default function App() {
   const [paymentKeys, setPaymentKeys] = useState(() => { try { const s = localStorage.getItem("v9_keys"); return s ? JSON.parse(s) : {}; } catch { return {}; } });
   const [paymentSaved, setPaymentSaved] = useState(false);
   const [exportMsg, setExportMsg] = useState("");
+  // 3. Paginação ADM vinhos
+  const WINES_PER_PAGE = 15;
+  const [admWinePage, setAdmWinePage] = useState(1);
   // 💳 Descontos por forma de pagamento
   const [payDescontos, setPayDescontos] = useState(() => {
     try { return JSON.parse(localStorage.getItem("v9_pay_desc") || '{"pix":5,"boleto":3,"credito1x":0}'); } catch { return { pix:5, boleto:3, credito1x:0 }; }
@@ -2672,7 +2680,7 @@ export default function App() {
     const lc = Math.max(0, s - c);
     const mgCol = parseFloat(mg) >= 35 ? "#4ade80" : parseFloat(mg) >= 20 ? "#fbbf24" : "#f87171";
     return (
-      <div className="form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+      <div className="form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
         {inp("name",    "Nome do Vinho",    "text",   true)}
         {/* País de Origem — dropdown com países comuns + opção personalizada */}
         <div>
@@ -2681,9 +2689,9 @@ export default function App() {
             onChange={e => setObj(p => ({ ...p, origin: e.target.value === "Outro" ? "" : e.target.value }))}
             style={{ width: "100%", background: "#120e0c", border: "1px solid #2a1f1f", borderRadius: 4, padding: "9px 11px", color: "#f5f0e8", fontSize: 13, fontFamily: "Georgia,serif", marginBottom: 6 }}>
             <option value="">Selecione…</option>
-            {["🇦🇷 Argentina","🇧🇷 Brasil","🇨🇱 Chile","🇵🇹 Portugal","🇫🇷 França","🇮🇹 Itália","🇪🇸 Espanha","🇿🇦 África do Sul","🇺🇸 EUA","🇺🇾 Uruguai","🇦🇺 Austrália","🇩🇪 Alemanha"].map(p => {
-              const name = p.split(" ").slice(1).join(" ");
-              return <option key={name} value={name}>{p}</option>;
+          {["Argentina","Brasil","Chile","Portugal","França","Itália","Espanha","África do Sul","EUA","Uruguai","Austrália","Alemanha"].map(name => {
+              const FLAGS = {"Argentina":"🇦🇷","Brasil":"🇧🇷","Chile":"🇨🇱","Portugal":"🇵🇹","França":"🇫🇷","Itália":"🇮🇹","Espanha":"🇪🇸","África do Sul":"🇿🇦","EUA":"🇺🇸","Uruguai":"🇺🇾","Austrália":"🇦🇺","Alemanha":"🇩🇪"};
+              return <option key={name} value={name}>{FLAGS[name]} {name}</option>;
             })}
             <option value="Outro">✏️ Outro país…</option>
           </select>
@@ -2999,6 +3007,7 @@ export default function App() {
         .scroll-row{display:flex;gap:14px;overflow-x:auto;padding-bottom:8px}
         .scroll-row::-webkit-scrollbar{height:4px}
         .scroll-row::-webkit-scrollbar-thumb{background:#2a1f1f;border-radius:2px}
+        .home-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px}
 
         /* ── ADM: textos mais claros ── */
         .adm-content{color:#d0c0c0!important}
@@ -3020,6 +3029,7 @@ export default function App() {
           .hero-title{font-size:30px!important}
           .hero-sec{height:300px!important}
           .catalog-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))!important;gap:14px!important}
+          .home-grid{grid-template-columns:repeat(2,1fr)!important;gap:12px!important}
           .cat-pad{padding:18px 16px 0!important}
           .filters-row{flex-direction:column!important;gap:10px!important}
           .cat-btns{flex-wrap:wrap!important;gap:8px!important}
@@ -3032,6 +3042,9 @@ export default function App() {
           .adm-content{padding:18px 14px!important;font-size:15px!important}
           .kpi-grid{grid-template-columns:repeat(2,1fr)!important}
           .form-grid{grid-template-columns:1fr!important}
+          @media(min-width:480px) and (max-width:768px){
+            .form-grid{grid-template-columns:1fr 1fr!important}
+          }
           .tbl{font-size:13px!important}
           .tbl td,.tbl th{padding:10px 10px!important}
           .detail-flex{flex-direction:column!important}
@@ -3171,6 +3184,114 @@ export default function App() {
             </div>
           )}
 
+          {/* 4+5+6: Seções de destaque + botão Ver Todos */}
+          {wines.length > 0 && (
+            <div style={{ maxWidth: 1200, margin: "0 auto", padding: "36px 36px 0" }}>
+
+              {/* 6: Botão Ver Todos */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 36, flexWrap: "wrap", gap: 16 }}>
+                <div>
+                  <div style={{ fontSize: 9, letterSpacing: 4, color: "#8b6060", textTransform: "uppercase", marginBottom: 6 }}>Nosso acervo</div>
+                  <h2 style={{ fontSize: 24, color: "#f5f0e8" }}>Explore todos os rótulos</h2>
+                </div>
+                <button className="btn-red" onClick={() => document.getElementById("catalog")?.scrollIntoView({ behavior: "smooth" })}
+                  style={{ padding: "13px 30px", borderRadius: 6, fontSize: 13, letterSpacing: 2, textTransform: "uppercase", display: "flex", alignItems: "center", gap: 8 }}>
+                  🍷 Ver Todos os Vinhos
+                </button>
+              </div>
+
+              {/* 4: Recém Chegados — 9 últimos cadastrados */}
+              {wines.length > 0 && (
+                <div style={{ marginBottom: 48 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+                    <div style={{ width: 3, height: 28, background: "#e8b4b4", borderRadius: 2 }} />
+                    <div>
+                      <div style={{ fontSize: 9, letterSpacing: 3, color: "#8b6060", textTransform: "uppercase", marginBottom: 3 }}>Novidades</div>
+                      <h3 style={{ fontSize: 20, color: "#e8b4b4" }}>🆕 Recém Chegados</h3>
+                    </div>
+                  </div>
+                  <div className="home-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))", gap: 16 }}>
+                    {[...wines].reverse().slice(0, 9).map((wine) => {
+                      const activePrice = wine.promoPrice || wine.price;
+                      return (
+                        <div key={wine.id} className="wine-card" onClick={() => setSelectedWine(wine)}
+                          style={{ background: "linear-gradient(145deg,#1a1410,#120e0c)", border: "1px solid #2a1f1f", borderRadius: 12, overflow: "hidden", cursor: "pointer", transition: "all .25s", position: "relative" }}>
+                          <div style={{ width: "100%", aspectRatio: "1/1", position: "relative", overflow: "hidden" }}>
+                            <WineThumb wine={wine} height="100%" />
+                            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom,transparent 55%,rgba(12,10,9,.8))" }} />
+                            {wine.promoPrice && <span style={{ position: "absolute", top: 8, left: 8, background: "#b45309", color: "#fef3c7", fontSize: 9, padding: "2px 6px", borderRadius: 3, fontWeight: "bold" }}>-{discountPct(wine.price, wine.promoPrice)}%</span>}
+                            <span style={{ position: "absolute", top: 8, right: 8, background: "#8b2c2c", color: "#fff", fontSize: 8, padding: "2px 6px", borderRadius: 3 }}>{wine.category}</span>
+                            {/* Badge Novo */}
+                            <span style={{ position: "absolute", bottom: 8, left: 8, background: "rgba(96,165,250,.85)", color: "#fff", fontSize: 8, padding: "2px 7px", borderRadius: 10, letterSpacing: 1 }}>NOVO</span>
+                          </div>
+                          <div style={{ padding: "12px 12px 14px" }}>
+                            <div style={{ fontSize: 13, color: "#f5f0e8", fontWeight: "bold", marginBottom: 3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{wine.name}</div>
+                            <div style={{ fontSize: 10, color: "#7a6a6a", marginBottom: 6 }}>{wine.origin} · {wine.year}</div>
+                            <div style={{ display: "flex", alignItems: "baseline", gap: 5, marginBottom: 10 }}>
+                              <span style={{ fontSize: 16, color: wine.promoPrice ? "#fbbf24" : "#e8b4b4", fontWeight: "bold" }}>{fmt(activePrice)}</span>
+                              {wine.promoPrice && <span style={{ fontSize: 10, color: "#5a4a4a", textDecoration: "line-through" }}>{fmt(wine.price)}</span>}
+                            </div>
+                            <button className="btn-red" onClick={(e) => { e.stopPropagation(); addToCart(wine); }} disabled={wine.stock === 0}
+                              style={{ width: "100%", padding: "8px", borderRadius: 4, fontSize: 10, letterSpacing: 1, background: wine.stock === 0 ? "#2a1f1f" : "#8b2c2c", color: wine.stock === 0 ? "#5a4a4a" : "#fff", cursor: wine.stock === 0 ? "not-allowed" : "pointer" }}>
+                              {wine.stock === 0 ? "Esgotado" : "🛒 Carrinho"}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* 5: Mais Vendidos — 9 com maior sales */}
+              {wines.filter(w => w.sales > 0).length > 0 && (
+                <div style={{ marginBottom: 48 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+                    <div style={{ width: 3, height: 28, background: "#fbbf24", borderRadius: 2 }} />
+                    <div>
+                      <div style={{ fontSize: 9, letterSpacing: 3, color: "#b45309", textTransform: "uppercase", marginBottom: 3 }}>Favoritos dos clientes</div>
+                      <h3 style={{ fontSize: 20, color: "#fbbf24" }}>🏆 Mais Vendidos</h3>
+                    </div>
+                  </div>
+                  <div className="home-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))", gap: 16 }}>
+                    {[...wines].sort((a, b) => (b.sales || 0) - (a.sales || 0)).slice(0, 9).map((wine, rank) => {
+                      const activePrice = wine.promoPrice || wine.price;
+                      return (
+                        <div key={wine.id} className="wine-card" onClick={() => setSelectedWine(wine)}
+                          style={{ background: "linear-gradient(145deg,#1a1410,#120e0c)", border: "1px solid #2a1f1f", borderRadius: 12, overflow: "hidden", cursor: "pointer", transition: "all .25s", position: "relative" }}>
+                          <div style={{ width: "100%", aspectRatio: "1/1", position: "relative", overflow: "hidden" }}>
+                            <WineThumb wine={wine} height="100%" />
+                            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom,transparent 55%,rgba(12,10,9,.8))" }} />
+                            {wine.promoPrice && <span style={{ position: "absolute", top: 8, left: 8, background: "#b45309", color: "#fef3c7", fontSize: 9, padding: "2px 6px", borderRadius: 3, fontWeight: "bold" }}>-{discountPct(wine.price, wine.promoPrice)}%</span>}
+                            {/* Badge de ranking */}
+                            {rank < 3 && (
+                              <span style={{ position: "absolute", top: 8, right: 8, background: ["#ffd700","#c0c0c0","#cd7f32"][rank], color: "#0c0a09", fontSize: 10, padding: "2px 8px", borderRadius: 10, fontWeight: "bold" }}>
+                                {["🥇","🥈","🥉"][rank]}
+                              </span>
+                            )}
+                            <span style={{ position: "absolute", bottom: 8, left: 8, background: "rgba(180,83,9,.85)", color: "#fff", fontSize: 8, padding: "2px 7px", borderRadius: 10, letterSpacing: 1 }}>{wine.sales} vendas</span>
+                          </div>
+                          <div style={{ padding: "12px 12px 14px" }}>
+                            <div style={{ fontSize: 13, color: "#f5f0e8", fontWeight: "bold", marginBottom: 3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{wine.name}</div>
+                            <div style={{ fontSize: 10, color: "#7a6a6a", marginBottom: 6 }}>{wine.origin} · {wine.year}</div>
+                            <div style={{ display: "flex", alignItems: "baseline", gap: 5, marginBottom: 10 }}>
+                              <span style={{ fontSize: 16, color: wine.promoPrice ? "#fbbf24" : "#e8b4b4", fontWeight: "bold" }}>{fmt(activePrice)}</span>
+                              {wine.promoPrice && <span style={{ fontSize: 10, color: "#5a4a4a", textDecoration: "line-through" }}>{fmt(wine.price)}</span>}
+                            </div>
+                            <button className="btn-red" onClick={(e) => { e.stopPropagation(); addToCart(wine); }} disabled={wine.stock === 0}
+                              style={{ width: "100%", padding: "8px", borderRadius: 4, fontSize: 10, letterSpacing: 1, background: wine.stock === 0 ? "#2a1f1f" : "#8b2c2c", color: wine.stock === 0 ? "#5a4a4a" : "#fff", cursor: wine.stock === 0 ? "not-allowed" : "pointer" }}>
+                              {wine.stock === 0 ? "Esgotado" : "🛒 Carrinho"}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Catálogo */}
           <div id="catalog" className="cat-pad" style={{ padding: "32px 36px 0", maxWidth: 1200, margin: "0 auto" }}>
             <div style={{ marginBottom: 20 }}>
@@ -3254,7 +3375,21 @@ export default function App() {
                   <div style={{ display: "flex", gap: 7, flexWrap: "wrap", paddingTop: 4 }}>
                     <span style={{ fontSize: 9, letterSpacing: 2, color: "#5a4a4a", textTransform: "uppercase", alignSelf: "center", paddingRight: 4 }}>País</span>
                     {countries.map(c => {
-                      const flag = { "Argentina": "🇦🇷", "Brasil": "🇧🇷", "Chile": "🇨🇱", "Portugal": "🇵🇹", "França": "🇫🇷", "France": "🇫🇷", "Italy": "🇮🇹", "Itália": "🇮🇹", "Spain": "🇪🇸", "Espanha": "🇪🇸", "África do Sul": "🇿🇦", "South Africa": "🇿🇦", "EUA": "🇺🇸", "USA": "🇺🇸", "Uruguai": "🇺🇾", "Austrália": "🇦🇺", "Alemanha": "🇩🇪" }[c] || (c === "Todos" ? "🌍" : "🍷");
+                      const FLAG_MAP = {
+                        "Argentina":"🇦🇷","Brasil":"🇧🇷","Brazil":"🇧🇷",
+                        "Chile":"🇨🇱","Portugal":"🇵🇹","França":"🇫🇷","France":"🇫🇷",
+                        "Itália":"🇮🇹","Italy":"🇮🇹","Espanha":"🇪🇸","Spain":"🇪🇸",
+                        "África do Sul":"🇿🇦","South Africa":"🇿🇦","Africa do Sul":"🇿🇦",
+                        "EUA":"🇺🇸","USA":"🇺🇸","Estados Unidos":"🇺🇸","United States":"🇺🇸",
+                        "Uruguai":"🇺🇾","Uruguay":"🇺🇾",
+                        "Austrália":"🇦🇺","Australia":"🇦🇺",
+                        "Alemanha":"🇩🇪","Germany":"🇩🇪",
+                        "Nova Zelândia":"🇳🇿","New Zealand":"🇳🇿",
+                        "Argentina":"🇦🇷","Grécia":"🇬🇷","Greece":"🇬🇷",
+                        "Hungria":"🇭🇺","Hungary":"🇭🇺","Áustria":"🇦🇹","Austria":"🇦🇹",
+                        "Todos":"🌍",
+                      };
+                      const flag = FLAG_MAP[c] ?? (c === "Todos" ? "🌍" : "🍷");
                       const active = countryFilter === c;
                       return (
                         <button key={c} onClick={() => setCountryFilter(c)}
@@ -3983,16 +4118,16 @@ export default function App() {
                       const updated = { ...customCoupons, [appliedCoupon]: { ...(typeof c === "object" ? c : { pct: c, limit: null }), uses: ((typeof c === "object" ? c.uses : 0) || 0) + 1 } };
                       saveCoupons(updated);
                     }
-                    // Adiciona pontos ao cliente logado (R$1 = 1 ponto)
+                    // 10: Sistema de pontos — 100 pts por R$1 gasto
                     try {
                       const savedClient = JSON.parse(localStorage.getItem("v9_client") || "null");
                       if (savedClient) {
-                        const pts = Math.floor(cartFinal);
+                        const pts = Math.floor(cartFinal) * 100;
                         const orderId = `#${Date.now()}`;
                         const updatedClient = {
                           ...savedClient,
                           points: (savedClient.points || 0) + pts,
-                          tier: (savedClient.points || 0) + pts >= 5000 ? "Gold" : (savedClient.points || 0) + pts >= 2000 ? "Silver" : "Bronze",
+                          tier: (savedClient.points || 0) + pts >= 20000 ? "Gold" : (savedClient.points || 0) + pts >= 5000 ? "Silver" : "Bronze",
                           orders: [{ id: orderId, date: new Date().toLocaleDateString("pt-BR"), items: cart.map(i => `${i.name} × ${i.qty}`).join(", "), total: cartFinal, status: "Aguardando", pts }, ...(savedClient.orders || [])],
                           pointsHistory: [{ date: new Date().toLocaleDateString("pt-BR"), desc: `Compra ${orderId}`, pts }, ...(savedClient.pointsHistory || [])],
                         };
@@ -4200,51 +4335,85 @@ export default function App() {
                   </div>
                 </div>
                 {exportMsg && <div style={{ marginBottom: 14, padding: "8px 14px", background: "rgba(74,222,128,.08)", border: "1px solid rgba(74,222,128,.2)", borderRadius: 6, fontSize: 11, color: "#4ade80" }}>✅ {exportMsg}</div>}
-                {/* Low stock alert */}
                 {wines.filter(w => w.stock <= 3 && w.stock > 0).length > 0 && (
                   <div style={{ marginBottom: 16, padding: "10px 16px", background: "rgba(251,146,60,.06)", border: "1px solid rgba(251,146,60,.3)", borderRadius: 8, display: "flex", alignItems: "center", gap: 10 }}>
                     <span style={{ fontSize: 16 }}>⚠️</span>
-                    <span style={{ fontSize: 12, color: "#fb923c" }}>
-                      <strong>Estoque baixo:</strong> {wines.filter(w => w.stock <= 3 && w.stock > 0).map(w => `${w.name} (${w.stock} un.)`).join(" · ")}
-                    </span>
+                    <span style={{ fontSize: 12, color: "#fb923c" }}><strong>Estoque baixo:</strong> {wines.filter(w => w.stock <= 3 && w.stock > 0).map(w => `${w.name} (${w.stock} un.)`).join(" · ")}</span>
                   </div>
                 )}
-                <div style={{ background: "linear-gradient(145deg,#1a1410,#120e0c)", border: "1px solid #2a1f1f", borderRadius: 10, overflow: "auto" }}>
-                  <table className="tbl" style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-                    <thead><tr style={{ background: "#120e0c" }}>{["","Vinho","Custo","Venda","Promo","Margem","Estoque","Ações"].map((h) => <th key={h} style={{ padding: "11px 12px", textAlign: "left", fontSize: 8, letterSpacing: 2, color: "#5a4a4a", textTransform: "uppercase", borderBottom: "1px solid #2a1f1f" }}>{h}</th>)}</tr></thead>
-                    <tbody>
-                      {wines.map((w, i) => { const mg = margin(w.costPrice, w.price); return (
-                        <tr key={w.id} style={{ borderBottom: "1px solid #1a1410", background: i % 2 === 0 ? "transparent" : "rgba(255,255,255,.01)" }}>
-                          <td style={{ padding: "9px 12px" }}><div style={{ width: 36, height: 36, borderRadius: 6, overflow: "hidden" }}><WineThumb wine={w} height={36} /></div></td>
-                          <td style={{ padding: "9px 12px", color: "#f5f0e8" }}>{w.name}</td>
-                          <td style={{ padding: "9px 12px", color: "#a09080" }}>{fmt(w.costPrice||0)}</td>
-                          <td style={{ padding: "9px 12px", color: "#e8b4b4" }}>{fmt(w.price)}</td>
-                          <td style={{ padding: "9px 12px" }}>{w.promoPrice ? <span style={{ color: "#fbbf24", fontSize: 11 }}>{fmt(w.promoPrice)}</span> : <span style={{ color: "#3a2a2a", fontSize: 10 }}>—</span>}</td>
-                          <td style={{ padding: "9px 12px" }}><MarginBadge pct={mg} /></td>
-                          <td style={{ padding: "9px 12px" }}><span style={{ background: w.stock < 5 ? "#7f1d1d" : "#1a3a1a", color: w.stock < 5 ? "#fca5a5" : "#4ade80", padding: "2px 8px", borderRadius: 10, fontSize: 10 }}>{w.stock}</span></td>
-                          <td style={{ padding: "9px 12px" }}>
-                            <div style={{ display: "flex", gap: 5 }}>
-                              <button onClick={() => setEditWine({ ...w })} style={{ background: "none", border: "1px solid #2a3a2a", color: "#4ade80", padding: "3px 9px", borderRadius: 4, cursor: "pointer", fontSize: 10, fontFamily: "Georgia,serif" }}>Editar</button>
-                              <button onClick={() => handleDeleteWine(w.id)} style={{ background: "none", border: "1px solid #3a1f1f", color: "#ef4444", padding: "3px 9px", borderRadius: 4, cursor: "pointer", fontSize: 10, fontFamily: "Georgia,serif" }}>Remover</button>
-                              <button onClick={() => { const base = window.location.href.split('?')[0]; window.open(`${base}?produto=${encodeURIComponent(w.id)}`, '_blank'); }} style={{ background: "none", border: "1px solid #2a2a3a", color: "#a0a0e8", padding: "3px 9px", borderRadius: 4, cursor: "pointer", fontSize: 10, fontFamily: "Georgia,serif" }}>👁 Ver</button>
-                            </div>
-                          </td>
-                        </tr>
-                      ); })}
-                    </tbody>
-                  </table>
-                </div>
+                {/* 3: Paginação — calcula página atual */}
+                {(() => {
+                  const totalPages = Math.ceil(wines.length / WINES_PER_PAGE);
+                  const page = Math.min(admWinePage, Math.max(1, totalPages));
+                  const paged = wines.slice((page - 1) * WINES_PER_PAGE, page * WINES_PER_PAGE);
+                  return (
+                    <>
+                      <div style={{ background: "linear-gradient(145deg,#1a1410,#120e0c)", border: "1px solid #2a1f1f", borderRadius: 10, overflow: "auto" }}>
+                        <table className="tbl" style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                          <thead><tr style={{ background: "#120e0c" }}>{["","Vinho","Custo","Venda","Promo","Margem","Estoque","Ações"].map((h) => <th key={h} style={{ padding: "11px 12px", textAlign: "left", fontSize: 8, letterSpacing: 2, color: "#5a4a4a", textTransform: "uppercase", borderBottom: "1px solid #2a1f1f" }}>{h}</th>)}</tr></thead>
+                          <tbody>
+                            {paged.map((w, i) => { const mg = margin(w.costPrice, w.price); return (
+                              <tr key={w.id} style={{ borderBottom: "1px solid #1a1410", background: i % 2 === 0 ? "transparent" : "rgba(255,255,255,.01)" }}>
+                                <td style={{ padding: "9px 12px" }}><div style={{ width: 36, height: 36, borderRadius: 6, overflow: "hidden" }}><WineThumb wine={w} height={36} /></div></td>
+                                <td style={{ padding: "9px 12px", color: "#f5f0e8" }}>{w.name}</td>
+                                <td style={{ padding: "9px 12px", color: "#a09080" }}>{fmt(w.costPrice||0)}</td>
+                                <td style={{ padding: "9px 12px", color: "#e8b4b4" }}>{fmt(w.price)}</td>
+                                <td style={{ padding: "9px 12px" }}>{w.promoPrice ? <span style={{ color: "#fbbf24", fontSize: 11 }}>{fmt(w.promoPrice)}</span> : <span style={{ color: "#3a2a2a", fontSize: 10 }}>—</span>}</td>
+                                <td style={{ padding: "9px 12px" }}><MarginBadge pct={mg} /></td>
+                                <td style={{ padding: "9px 12px" }}><span style={{ background: w.stock < 5 ? "#7f1d1d" : "#1a3a1a", color: w.stock < 5 ? "#fca5a5" : "#4ade80", padding: "2px 8px", borderRadius: 10, fontSize: 10 }}>{w.stock}</span></td>
+                                <td style={{ padding: "9px 12px" }}>
+                                  <div style={{ display: "flex", gap: 5 }}>
+                                    <button onClick={() => setEditWine({ ...w })} style={{ background: "none", border: "1px solid #2a3a2a", color: "#4ade80", padding: "3px 9px", borderRadius: 4, cursor: "pointer", fontSize: 10, fontFamily: "Georgia,serif" }}>Editar</button>
+                                    <button onClick={() => handleDeleteWine(w.id)} style={{ background: "none", border: "1px solid #3a1f1f", color: "#ef4444", padding: "3px 9px", borderRadius: 4, cursor: "pointer", fontSize: 10, fontFamily: "Georgia,serif" }}>Remover</button>
+                                    <button onClick={() => { const base = window.location.href.split('?')[0]; window.open(`${base}?produto=${encodeURIComponent(w.id)}`, '_blank'); }} style={{ background: "none", border: "1px solid #2a2a3a", color: "#a0a0e8", padding: "3px 9px", borderRadius: 4, cursor: "pointer", fontSize: 10, fontFamily: "Georgia,serif" }}>👁 Ver</button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ); })}
+                          </tbody>
+                        </table>
+                      </div>
+                      {/* Paginação */}
+                      {totalPages > 1 && (
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 16, flexWrap: "wrap", gap: 10 }}>
+                          <span style={{ fontSize: 12, color: "#7a6a6a" }}>
+                            Página {page} de {totalPages} · {wines.length} vinhos
+                          </span>
+                          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                            <button onClick={() => setAdmWinePage(1)} disabled={page === 1}
+                              style={{ padding: "5px 10px", background: "none", border: "1px solid #2a1f1f", borderRadius: 4, color: page === 1 ? "#3a2a2a" : "#a09080", cursor: page === 1 ? "default" : "pointer", fontSize: 12, fontFamily: "Georgia,serif" }}>«</button>
+                            <button onClick={() => setAdmWinePage(p => Math.max(1, p - 1))} disabled={page === 1}
+                              style={{ padding: "5px 12px", background: "none", border: "1px solid #2a1f1f", borderRadius: 4, color: page === 1 ? "#3a2a2a" : "#a09080", cursor: page === 1 ? "default" : "pointer", fontSize: 12, fontFamily: "Georgia,serif" }}>‹ Anterior</button>
+                            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                              const start = Math.max(1, Math.min(page - 2, totalPages - 4));
+                              const n = start + i;
+                              if (n > totalPages) return null;
+                              return (
+                                <button key={n} onClick={() => setAdmWinePage(n)}
+                                  style={{ padding: "5px 10px", background: n === page ? "#8b2c2c" : "none", border: `1px solid ${n === page ? "#8b2c2c" : "#2a1f1f"}`, borderRadius: 4, color: n === page ? "#fff" : "#a09080", cursor: "pointer", fontSize: 12, fontFamily: "Georgia,serif", minWidth: 34 }}>{n}</button>
+                              );
+                            })}
+                            <button onClick={() => setAdmWinePage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+                              style={{ padding: "5px 12px", background: "none", border: "1px solid #2a1f1f", borderRadius: 4, color: page === totalPages ? "#3a2a2a" : "#a09080", cursor: page === totalPages ? "default" : "pointer", fontSize: 12, fontFamily: "Georgia,serif" }}>Próxima ›</button>
+                            <button onClick={() => setAdmWinePage(totalPages)} disabled={page === totalPages}
+                              style={{ padding: "5px 10px", background: "none", border: "1px solid #2a1f1f", borderRadius: 4, color: page === totalPages ? "#3a2a2a" : "#a09080", cursor: page === totalPages ? "default" : "pointer", fontSize: 12, fontFamily: "Georgia,serif" }}>»</button>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
             )}
 
-            {/* Cadastrar */}
+            {/* 1+2: Cadastrar — formulário largo desktop, ideal mobile */}
             {adminTab === "add" && (
-              <div style={{ maxWidth: 580 }}>
+              <div style={{ maxWidth: "100%" }}>
                 <h1 style={{ fontSize: 21, marginBottom: 5 }}>Cadastrar Vinho</h1>
                 <p style={{ color: "#7a6a6a", fontSize: 11, marginBottom: 24 }}>Adicione um novo vinho ao catálogo</p>
-                <div style={{ background: "linear-gradient(145deg,#1a1410,#120e0c)", border: "1px solid #2a1f1f", borderRadius: 10, padding: 24 }}>
+                <div style={{ background: "linear-gradient(145deg,#1a1410,#120e0c)", border: "1px solid #2a1f1f", borderRadius: 10, padding: "28px 32px" }}>
                   {renderFormFields(newWine, setNewWine, newImgRef)}
-                  <button className="btn-red" onClick={handleAddWine} style={{ marginTop: 18, padding: "12px 26px", borderRadius: 4, fontSize: 11, letterSpacing: 2, textTransform: "uppercase" }}>Cadastrar Vinho</button>
+                  <button className="btn-red" onClick={handleAddWine} style={{ marginTop: 18, padding: "13px 32px", borderRadius: 4, fontSize: 12, letterSpacing: 2, textTransform: "uppercase" }}>Cadastrar Vinho</button>
                 </div>
               </div>
             )}
