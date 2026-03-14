@@ -3100,21 +3100,169 @@ export default function App() {
     return () => clearTimeout(t);
   }, [filter, countryFilter, search, sortBy, priceRange[0], priceRange[1]]);
 
-  // SEO: update title and keywords meta when product is selected
+  // ── SEO completo: 10, 7, 4, 5, 3, 9, 2, 1, 8, 6 ──────────────────────────
   useEffect(() => {
+    const setMeta = (sel, attr, val) => {
+      let el = document.querySelector(sel);
+      if (!el) {
+        el = document.createElement("meta");
+        const parts = sel.replace("meta[","").replace("]","").split("=");
+        el.setAttribute(parts[0], parts[1].replace(/"/g,""));
+        document.head.appendChild(el);
+      }
+      el.setAttribute(attr, val);
+    };
+    const setLink = (rel, href) => {
+      let el = document.querySelector(`link[rel="${rel}"]`);
+      if (!el) { el = document.createElement("link"); el.rel = rel; document.head.appendChild(el); }
+      el.href = href;
+    };
+    const removeScript = (id) => { const el = document.getElementById(id); if (el) el.remove(); };
+    const addScript = (id, content) => {
+      removeScript(id);
+      const s = document.createElement("script");
+      s.type = "application/ld+json";
+      s.id = id;
+      s.textContent = content;
+      document.head.appendChild(s);
+    };
+
+    const BASE_URL = window.location.origin + window.location.pathname.replace(/\/$/, "");
+    const STORE_NAME = "Vinhos9";
+    const STORE_DESC = "Vinhos importados selecionados das melhores regiões vinícolas do mundo. Tinto, branco, espumante e rosé com entrega para todo o Brasil.";
+    const STORE_LOGO = `${BASE_URL}/logo.png`;
+
     if (selectedWine) {
-      document.title = `${selectedWine.name} ${selectedWine.year ? '(' + selectedWine.year + ')' : ''} — Vinhos9`;
-      let meta = document.querySelector('meta[name="keywords"]');
-      if (!meta) { meta = document.createElement('meta'); meta.name = "keywords"; document.head.appendChild(meta); }
-      const kw = [selectedWine.name, selectedWine.origin, selectedWine.region, selectedWine.category, selectedWine.grapes, selectedWine.keywords].filter(Boolean).join(', ');
-      meta.content = kw;
-      let desc = document.querySelector('meta[name="description"]');
-      if (!desc) { desc = document.createElement('meta'); desc.name = "description"; document.head.appendChild(desc); }
-      desc.content = selectedWine.description || `${selectedWine.name} — ${selectedWine.category} de ${selectedWine.origin}. Disponível na Vinhos9.`;
+      const w = selectedWine;
+      const price = w.promoPrice || w.price;
+      const productUrl = `${BASE_URL}?produto=${w.id}`;
+      const img = w.img || STORE_LOGO;
+      const fullDesc = w.description || `${w.name} — ${w.category} de ${w.origin}. Disponível na Vinhos9 com entrega para todo o Brasil.`;
+      const keywords = [w.name, w.origin, w.region, w.category, w.grapes, w.keywords, `comprar ${w.category?.toLowerCase()}`, `vinho importado ${w.origin}`].filter(Boolean).join(", ");
+
+      // 10: title
+      document.title = `${w.name}${w.year ? ` (${w.year})` : ""} — ${STORE_NAME}`;
+
+      // 9: meta keywords e description
+      setMeta('meta[name="description"]', "content", fullDesc);
+      setMeta('meta[name="keywords"]',    "content", keywords);
+
+      // 5: canonical
+      setLink("canonical", productUrl);
+
+      // 3: Open Graph
+      setMeta('meta[property="og:type"]',         "content", "product");
+      setMeta('meta[property="og:title"]',        "content", `${w.name}${w.year ? ` (${w.year})` : ""}`);
+      setMeta('meta[property="og:description"]',  "content", fullDesc);
+      setMeta('meta[property="og:url"]',          "content", productUrl);
+      setMeta('meta[property="og:image"]',        "content", img);
+      setMeta('meta[property="og:site_name"]',    "content", STORE_NAME);
+      setMeta('meta[property="product:price:amount"]',   "content", String(price));
+      setMeta('meta[property="product:price:currency"]', "content", "BRL");
+
+      // 4: Twitter Card
+      setMeta('meta[name="twitter:card"]',        "content", "summary_large_image");
+      setMeta('meta[name="twitter:title"]',       "content", `${w.name}${w.year ? ` (${w.year})` : ""}`);
+      setMeta('meta[name="twitter:description"]', "content", fullDesc);
+      setMeta('meta[name="twitter:image"]',       "content", img);
+
+      // 1: Schema.org Product
+      addScript("schema-product", JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "Product",
+        "name": w.name,
+        "description": fullDesc,
+        "image": img,
+        "url": productUrl,
+        "brand": { "@type": "Brand", "name": w.origin || STORE_NAME },
+        "category": `Vinhos > ${w.category}`,
+        "offers": {
+          "@type": "Offer",
+          "priceCurrency": "BRL",
+          "price": String(price),
+          "availability": w.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+          "url": productUrl,
+          "seller": { "@type": "Organization", "name": STORE_NAME }
+        },
+        ...(w.rating ? {
+          "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": String(w.rating),
+            "bestRating": "5",
+            "worstRating": "1",
+            "ratingCount": String(w.sales > 0 ? w.sales : 1)
+          }
+        } : {}),
+        // 8: BreadcrumbList
+        "breadcrumb": {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            { "@type": "ListItem", "position": 1, "name": STORE_NAME, "item": BASE_URL },
+            { "@type": "ListItem", "position": 2, "name": w.category,  "item": `${BASE_URL}?categoria=${w.category}` },
+            { "@type": "ListItem", "position": 3, "name": w.name,      "item": productUrl }
+          ]
+        }
+      }));
+      removeScript("schema-org");
+      removeScript("schema-sitemap");
+
     } else {
-      document.title = "Vinhos9 — Vinhos Importados de Excelência";
+      // Home / catálogo
+      document.title = `${STORE_NAME} — Vinhos Importados de Excelência`;
+
+      // 10: meta description da home
+      setMeta('meta[name="description"]', "content", STORE_DESC);
+      setMeta('meta[name="keywords"]',    "content", "vinhos importados, vinho tinto, vinho branco, espumante, rosé, comprar vinho online, vinho argentino, vinho chileno, vinho francês, vinho português, harmonização");
+
+      // 5: canonical da home
+      setLink("canonical", BASE_URL);
+
+      // 3: Open Graph da home
+      setMeta('meta[property="og:type"]',        "content", "website");
+      setMeta('meta[property="og:title"]',       "content", `${STORE_NAME} — Vinhos Importados de Excelência`);
+      setMeta('meta[property="og:description"]', "content", STORE_DESC);
+      setMeta('meta[property="og:url"]',         "content", BASE_URL);
+      setMeta('meta[property="og:image"]',       "content", STORE_LOGO);
+      setMeta('meta[property="og:site_name"]',   "content", STORE_NAME);
+
+      // 4: Twitter Card da home
+      setMeta('meta[name="twitter:card"]',        "content", "summary_large_image");
+      setMeta('meta[name="twitter:title"]',       "content", `${STORE_NAME} — Vinhos Importados de Excelência`);
+      setMeta('meta[name="twitter:description"]', "content", STORE_DESC);
+      setMeta('meta[name="twitter:image"]',       "content", STORE_LOGO);
+
+      // 2: Schema.org Organization
+      addScript("schema-org", JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": STORE_NAME,
+        "url": BASE_URL,
+        "logo": STORE_LOGO,
+        "description": STORE_DESC,
+        "contactPoint": { "@type": "ContactPoint", "contactType": "customer service", "availableLanguage": "Portuguese" }
+      }));
+
+      // 6: Sitemap dinâmico via WebSite + SearchAction (sitelinks searchbox)
+      addScript("schema-sitemap", JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": STORE_NAME,
+        "url": BASE_URL,
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": { "@type": "EntryPoint", "urlTemplate": `${BASE_URL}?busca={search_term_string}` },
+          "query-input": "required name=search_term_string"
+        }
+      }));
+      removeScript("schema-product");
     }
-  }, [selectedWine]);
+
+    // 7: robots meta (sempre)
+    setMeta('meta[name="robots"]', "content", "index, follow, max-image-preview:large");
+    setMeta('meta[name="viewport"]', "content", "width=device-width, initial-scale=1");
+
+  }, [selectedWine, wines]);
+  // ───────────────────────────────────────────────────────────────────────────
   const relatedWines = selectedWine ? (() => {
     const sameCategory = wines.filter((w) => w.category === selectedWine.category && w.id !== selectedWine.id);
     if (sameCategory.length >= 3) return sameCategory;
