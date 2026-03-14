@@ -3650,9 +3650,9 @@ export default function App() {
               {/* Info */}
               <div style={{ flex: 1 }}>
                 <p style={{ fontSize: 10, letterSpacing: 3, color: "#8b6060", textTransform: "uppercase", marginBottom: 6 }}>{selectedWine.origin} · {selectedWine.region}</p>
-                <h1 style={{ fontSize: 28, color: "#f5f0e8", marginBottom: 8, lineHeight: 1.2 }}>{selectedWine.name}</h1>
+                <h1 style={{ fontSize: 22, color: "#f5f0e8", marginBottom: 8, lineHeight: 1.3 }}>{selectedWine.name}</h1>
                 <div style={{ marginBottom: 14 }}><Stars rating={selectedWine.rating} /></div>
-                <p style={{ fontSize: 13, color: "#a09080", lineHeight: 1.8, marginBottom: 20 }}>{selectedWine.description}</p>
+                <p style={{ fontSize: 12, color: "#a09080", lineHeight: 1.75, marginBottom: 20 }}>{selectedWine.description}</p>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 22 }}>
                   {[["🗓 Safra", selectedWine.year], ["🍇 Uvas", selectedWine.grapes], ["🌍 Região", selectedWine.region], ["🍾 Teor Alcoólico", selectedWine.alcohol]].map(([label, val]) => (
                     <div key={label} style={{ background: "#1a1410", border: "1px solid #2a1f1f", borderRadius: 8, padding: "10px 13px" }}>
@@ -5086,82 +5086,88 @@ export default function App() {
       {/* 🔍 Image Zoom Modal */}
       {zoomWine && <ImageZoomModal wine={zoomWine} onClose={() => setZoomWine(null)} />}
 
-      {page === "store" && !selectedWine && (
-        <footer style={{ background: "#0a0808", borderTop: "1px solid #1a1410", padding: "40px 20px 24px" }}>
-          <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-            {/* Linha de divisão e grade */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px,1fr))", gap: 32, marginBottom: 36 }}>
+      {(page === "store") && (() => {
+        const SiteFooter = () => (
+          <footer style={{ background: "#0c0808", borderTop: "2px solid #2a1f1f", padding: "48px 24px 28px", marginTop: 16 }}>
+            <div style={{ maxWidth: 1100, margin: "0 auto" }}>
 
-              {/* Marca */}
-              <div>
-                <div style={{ fontSize: 18, fontWeight: "bold", letterSpacing: 2, color: "#e8b4b4", marginBottom: 8 }}>🍷 VINHOS9</div>
-                <p style={{ fontSize: 12, color: "#4a3a3a", lineHeight: 1.8 }}>Vinhos importados selecionados das melhores regiões vinícolas do mundo.</p>
-              </div>
+              {/* Grade principal */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px,1fr))", gap: 36, marginBottom: 40 }}>
 
-              {/* 17: Formas de pagamento */}
-              <div>
-                <div style={{ fontSize: 10, letterSpacing: 2, color: "#7a5a5a", textTransform: "uppercase", marginBottom: 12 }}>💳 Pagamento</div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-                  {[
-                    { icon: "⚡", label: "Pix", desc: payDescontos.pix > 0 ? `${payDescontos.pix}% de desconto` : "Aprovação imediata", color: payDescontos.pix > 0 ? "#4ade80" : "#5a4a4a" },
-                    { icon: "📄", label: "Boleto", desc: payDescontos.boleto > 0 ? `${payDescontos.boleto}% de desconto` : "Vence em 3 dias", color: payDescontos.boleto > 0 ? "#fbbf24" : "#5a4a4a" },
-                    { icon: "💳", label: "Cartão 1x", desc: payDescontos.credito1x > 0 ? `${payDescontos.credito1x}% de desconto` : "Sem acréscimos", color: payDescontos.credito1x > 0 ? "#e8b4b4" : "#5a4a4a" },
-                    { icon: "💳", label: "Até 12x", desc: "Sujeito a juros do cartão", color: "#5a4a4a" },
-                  ].map(({ icon, label, desc, color }) => (
-                    <div key={label} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 13 }}>{icon}</span>
-                      <div>
-                        <span style={{ fontSize: 12, color: "#a09080" }}>{label}</span>
-                        <span style={{ fontSize: 10, color, marginLeft: 6 }}>{desc}</span>
+                {/* Marca */}
+                <div>
+                  <div style={{ fontSize: 22, fontWeight: "bold", letterSpacing: 2, color: "#e8b4b4", marginBottom: 10 }}>🍷 VINHOS9</div>
+                  <p style={{ fontSize: 14, color: "#a09080", lineHeight: 1.9, marginBottom: 14 }}>Vinhos importados selecionados das melhores regiões vinícolas do mundo.</p>
+                  <div style={{ fontSize: 12, color: "#7a6a6a" }}>Castro, Paraná — Brasil</div>
+                </div>
+
+                {/* Pagamento */}
+                <div>
+                  <div style={{ fontSize: 13, letterSpacing: 2, color: "#c09080", textTransform: "uppercase", marginBottom: 16, fontWeight: "bold" }}>💳 Formas de Pagamento</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    {[
+                      { icon: "⚡", label: "Pix", desc: payDescontos.pix > 0 ? `${payDescontos.pix}% de desconto` : "Aprovação imediata", color: payDescontos.pix > 0 ? "#4ade80" : "#9a8a8a" },
+                      { icon: "📄", label: "Boleto", desc: payDescontos.boleto > 0 ? `${payDescontos.boleto}% de desconto` : "Vence em 3 dias úteis", color: payDescontos.boleto > 0 ? "#fbbf24" : "#9a8a8a" },
+                      { icon: "💳", label: "Cartão 1x", desc: payDescontos.credito1x > 0 ? `${payDescontos.credito1x}% de desconto` : "Sem acréscimos", color: payDescontos.credito1x > 0 ? "#e8b4b4" : "#9a8a8a" },
+                      { icon: "💳", label: "Até 12x", desc: "Sujeito a juros do cartão", color: "#9a8a8a" },
+                    ].map(({ icon, label, desc, color }) => (
+                      <div key={label} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <span style={{ fontSize: 16, flexShrink: 0 }}>{icon}</span>
+                        <div>
+                          <span style={{ fontSize: 14, color: "#d0c0b8", fontWeight: "bold" }}>{label}</span>
+                          <span style={{ fontSize: 12, color, marginLeft: 8 }}>{desc}</span>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
+                  <div style={{ marginTop: 12, fontSize: 12, color: "#8a7a7a", lineHeight: 1.6 }}>
+                    🔒 Processado pelo <strong style={{ color: "#b0a090" }}>Mercado Pago</strong>
+                  </div>
                 </div>
-                <div style={{ marginTop: 10, fontSize: 10, color: "#4a3a3a", lineHeight: 1.6 }}>
-                  🔒 Pagamentos processados pelo <strong style={{ color: "#6a5a5a" }}>Mercado Pago</strong>
-                </div>
-              </div>
 
-              {/* Segurança */}
-              <div>
-                <div style={{ fontSize: 10, letterSpacing: 2, color: "#7a5a5a", textTransform: "uppercase", marginBottom: 12 }}>🔐 Segurança</div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-                  {[
-                    ["🛡️", "SSL 256-bit", "Conexão criptografada"],
-                    ["📋", "LGPD", "Dados protegidos por lei"],
-                    ["✅", "Site Verificado", "Compra 100% segura"],
-                    ["🏅", "Vinhos originais", "Garantia de autenticidade"],
-                  ].map(([ic, lb, desc]) => (
-                    <div key={lb} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 13 }}>{ic}</span>
-                      <div>
-                        <span style={{ fontSize: 12, color: "#a09080" }}>{lb}</span>
-                        <span style={{ fontSize: 10, color: "#4a3a3a", marginLeft: 6 }}>{desc}</span>
+                {/* Segurança */}
+                <div>
+                  <div style={{ fontSize: 13, letterSpacing: 2, color: "#c09080", textTransform: "uppercase", marginBottom: 16, fontWeight: "bold" }}>🔐 Segurança</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    {[
+                      ["🛡️", "SSL 256-bit", "Conexão criptografada"],
+                      ["📋", "LGPD", "Dados protegidos por lei"],
+                      ["✅", "Compra Segura", "Site verificado"],
+                      ["🏅", "Originais", "Garantia de autenticidade"],
+                    ].map(([ic, lb, desc]) => (
+                      <div key={lb} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <span style={{ fontSize: 16, flexShrink: 0 }}>{ic}</span>
+                        <div>
+                          <span style={{ fontSize: 14, color: "#d0c0b8", fontWeight: "bold" }}>{lb}</span>
+                          <span style={{ fontSize: 12, color: "#9a8a8a", marginLeft: 8 }}>{desc}</span>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* 18: Aviso de imagens IA */}
-            <div style={{ borderTop: "1px solid #1a1410", paddingTop: 16, marginBottom: 14 }}>
-              <div style={{ background: "rgba(96,165,250,.05)", border: "1px solid rgba(96,165,250,.15)", borderRadius: 8, padding: "10px 14px", fontSize: 11, color: "#4a5a6a", lineHeight: 1.7 }}>
-                📸 <strong style={{ color: "#5a6a7a" }}>Nota sobre as imagens:</strong> As fotos dos vinhos exibidas neste site são reais, porém podem apresentar pequenas diferenças visuais em relação à embalagem física, pois são aprimoradas com <strong style={{ color: "#5a6a7a" }}>inteligência artificial</strong> para melhor apresentação. O produto entregue é 100% original e certificado.
+              {/* Aviso imagens IA */}
+              <div style={{ borderTop: "1px solid #2a1f1f", paddingTop: 20, marginBottom: 18 }}>
+                <div style={{ background: "rgba(96,165,250,.07)", border: "1px solid rgba(96,165,250,.2)", borderRadius: 10, padding: "14px 18px", fontSize: 13, color: "#8a9aaa", lineHeight: 1.8 }}>
+                  📸 <strong style={{ color: "#a0b0c0" }}>Nota sobre as imagens:</strong> As fotos dos vinhos exibidas neste site são reais, porém podem apresentar pequenas diferenças visuais em relação à embalagem física, pois são aprimoradas com <strong style={{ color: "#a0b0c0" }}>inteligência artificial</strong> para melhor apresentação. O produto entregue é 100% original e certificado.
+                </div>
+              </div>
+
+              {/* Rodapé final */}
+              <div style={{ textAlign: "center", paddingTop: 10 }}>
+                <div style={{ fontSize: 20, marginBottom: 6 }}>🍷</div>
+                <div style={{ fontSize: 14, letterSpacing: 3, color: "#9a7a7a", marginBottom: 8, fontWeight: "bold" }}>VINHOS9</div>
+                <p style={{ color: "#6a5a5a", fontSize: 12, lineHeight: 1.7 }}>
+                  © 2026 Vinhos9 Importados · Todos os direitos reservados<br />
+                  Venda proibida para menores de 18 anos 🔞
+                </p>
               </div>
             </div>
-
-            {/* Rodapé final */}
-            <div style={{ textAlign: "center", paddingTop: 12 }}>
-              <div style={{ fontSize: 18, marginBottom: 4 }}>🍷</div>
-              <div style={{ fontSize: 12, letterSpacing: 3, color: "#6a4a4a", marginBottom: 6 }}>VINHOS9</div>
-              <p style={{ color: "#2a1a1a", fontSize: 10 }}>
-                © 2026 Vinhos9 Importados · Todos os direitos reservados · Venda proibida para menores de 18 anos
-              </p>
-            </div>
-          </div>
-        </footer>
-      )}
+          </footer>
+        );
+        return <SiteFooter />;
+      })()}
     </div>
   );
 }
