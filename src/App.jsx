@@ -286,6 +286,8 @@ const PromoTimer = ({ wineId, compact = false }) => {
       </div>
     </div>
   );
+  // Manutenção: bloqueia clientes (admins com ?adm=1 passam)
+
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8, background: "linear-gradient(135deg,rgba(180,83,9,.2),rgba(120,50,0,.15))", border: "1px solid rgba(180,83,9,.4)", borderRadius: 8, padding: "8px 14px" }}>
       <span style={{ fontSize: 14 }}>⏰</span>
@@ -316,6 +318,8 @@ const BannersAdminPanel = ({ banners, saveBanners }) => {
   const previewBg = eb.imgDesktop
     ? { backgroundImage: `url(${eb.imgDesktop})`, backgroundSize: eb.imgSize || "cover", backgroundPosition: eb.imgPosition || "center" }
     : { background: eb.bg || "linear-gradient(135deg,#1a0505,#2d0f0f)" };
+  // Manutenção: bloqueia clientes (admins com ?adm=1 passam)
+
   return (
     <div>
       <div style={{ marginBottom: 6 }}>
@@ -491,6 +495,8 @@ const ManualReviewForm = ({ wines, supaCfg, setReviews, showToast }) => {
     showToast("✅ Avaliação adicionada e publicada!");
     setSaving(false);
   };
+  // Manutenção: bloqueia clientes (admins com ?adm=1 passam)
+
   return (
     <div style={{ background: "linear-gradient(145deg,#1a1410,#120e0c)", border: "1px solid #2a1f1f", borderRadius: 12, padding: 22, marginBottom: 28 }}>
       <div style={{ fontSize: 11, letterSpacing: 2, color: "#a09080", textTransform: "uppercase", marginBottom: 16 }}>✍️ Adicionar Avaliação Manualmente</div>
@@ -573,6 +579,8 @@ Responda dúvidas sobre harmonização, temperatura de serviço, decantação, o
     }
     setSomLoad(false);
   };
+
+  // Manutenção: bloqueia clientes (admins com ?adm=1 passam)
 
   return (
     <div style={{ marginTop: 16, background: "linear-gradient(135deg,#1a0e0e,#120c0c)", border: "1px solid #3a1f1f", borderRadius: 10, overflow: "hidden" }}>
@@ -657,6 +665,8 @@ const WineThumb = ({ wine, size = "100%", height = "100%" }) => (
 const MiniCard = ({ wine, onClick }) => {
   const activePrice = wine.promoPrice || wine.price;
   const shortDesc = wine.description ? wine.description.slice(0, 60) + (wine.description.length > 60 ? "…" : "") : "";
+  // Manutenção: bloqueia clientes (admins com ?adm=1 passam)
+
   return (
     <div onClick={() => onClick(wine)} style={{ cursor: "pointer", background: "linear-gradient(145deg,#1a1410,#120e0c)", border: "1px solid #2a1f1f", borderRadius: 10, overflow: "hidden", transition: "all .25s", flexShrink: 0, width: 170 }}
       onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = "0 12px 40px rgba(139,44,44,.3)"; }}
@@ -699,6 +709,8 @@ const ImageZoomModal = ({ wine, onClose }) => {
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [onClose]);
+  // Manutenção: bloqueia clientes (admins com ?adm=1 passam)
+
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(0,0,0,.92)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", animation: "fadeIn .2s ease", cursor: "zoom-out" }}>
       <div onClick={e => e.stopPropagation()} style={{ position: "relative", maxWidth: 600, maxHeight: "90vh", width: "90vw", cursor: "default" }}>
@@ -787,6 +799,8 @@ const Carousel = ({ items, onSelect, title, subtitle, accentColor = "#e8b4b4", a
           ? `translateX(${animDir === "right" ? "-18px" : "18px"})`
           : "translateX(0)",
       };
+
+  // Manutenção: bloqueia clientes (admins com ?adm=1 passam)
 
   return (
     <div style={{ marginTop: 52, paddingTop: 32, borderTop: "1px solid #2a1f1f" }}
@@ -888,6 +902,8 @@ const Carousel = ({ items, onSelect, title, subtitle, accentColor = "#e8b4b4", a
 // ── ReviewSection ─────────────────────────────────────────────────────────────
 const StarPicker = ({ value, onChange, size = 24 }) => {
   const [hovered, setHovered] = useState(0);
+  // Manutenção: bloqueia clientes (admins com ?adm=1 passam)
+
   return (
     <div style={{ display: "flex", gap: 4 }}>
       {[1,2,3,4,5].map((s) => (
@@ -936,6 +952,8 @@ const ReviewSection = ({ wine, reviews, setReviews, reviewedWines = new Set(), s
     setErrorMsg("");
     setTimeout(() => setFormState("idle"), 5000);
   };
+
+  // Manutenção: bloqueia clientes (admins com ?adm=1 passam)
 
   return (
     <div style={{ marginTop: 48, paddingTop: 32, borderTop: "1px solid #2a1f1f" }}>
@@ -1094,6 +1112,8 @@ const FreteCalculator = ({ wine }) => {
     return d.length > 5 ? d.slice(0, 5) + "-" + d.slice(5) : d;
   };
 
+  // Manutenção: bloqueia clientes (admins com ?adm=1 passam)
+
   return (
     <div style={{ background: "#120e0c", border: "1px solid #2a1f1f", borderRadius: 10, padding: "18px 20px", marginTop: 4 }}>
       <div style={{ fontSize: 9, letterSpacing: 3, color: "#8b6060", textTransform: "uppercase", marginBottom: 10 }}>📦 Calcular Frete e Entrega</div>
@@ -1187,6 +1207,8 @@ const InfoSlider = () => {
 
   const s = INFO_SLIDES[idx];
 
+  // Manutenção: bloqueia clientes (admins com ?adm=1 passam)
+
   return (
     <div style={{ background: s.bg, borderTop: "1px solid rgba(255,255,255,.04)", borderBottom: "1px solid rgba(255,255,255,.04)", transition: "background .5s ease" }}>
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 44px", position: "relative", display: "flex", alignItems: "center", justifyContent: "center", height: 38 }}>
@@ -1259,6 +1281,8 @@ const ImageBannerCarousel = ({ banners }) => {
 
   const b = active[idx];
   const heightStyle = isMobile ? (b.heightMobile || 280) : (b.heightDesktop || 420);
+
+  // Manutenção: bloqueia clientes (admins com ?adm=1 passam)
 
   return (
     <div style={{ position: "relative", overflow: "hidden", borderRadius: 0, width: "100%" }}>
@@ -1432,6 +1456,8 @@ const ClientAccountPanel = (props) => {
   ];
 
   const inputStyle = { width: "100%", background: "#0c0a09", border: "1px solid #2a1f1f", borderRadius: 4, padding: "11px 13px", color: "#f5f0e8", fontSize: 13, fontFamily: "Georgia,serif", outline: "none" };
+
+  // Manutenção: bloqueia clientes (admins com ?adm=1 passam)
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 400, display: "flex", alignItems: "flex-end", justifyContent: "flex-end" }}>
@@ -1882,6 +1908,8 @@ const HomeCarousel = ({ items, title, subtitle, accentColor, badge, onSelect, ad
 
   const dotCount = Math.max(1, total - VISIBLE + 1);
 
+  // Manutenção: bloqueia clientes (admins com ?adm=1 passam)
+
   return (
     <div style={{ marginBottom: 48 }}
       onMouseEnter={() => { pausedRef.current = true; }}
@@ -1998,6 +2026,8 @@ const CartFreteSelector = ({ freteConfig, cartTotal, freteEscolhido, setFreteEsc
   const freteGratis = opcoes.find(o => o.id === "gratis" && o.minValue);
   const faltaGratis = freteGratis ? Math.max(0, freteGratis.minValue - cartTotal) : 0;
 
+  // Manutenção: bloqueia clientes (admins com ?adm=1 passam)
+
   return (
     <div style={{ marginBottom: 14 }}>
       <div style={{ fontSize: 10, letterSpacing: 2, color: "#a09080", textTransform: "uppercase", marginBottom: 10 }}>🚚 Frete & Entrega</div>
@@ -2104,6 +2134,8 @@ const BannerEditor = ({ banner, banners, setBanners, showToast, saveBanners }) =
         style={{ width:"100%", background:"#0c0a09", border:"1px solid #2a1f1f", borderRadius:4, padding:"8px 10px", color:"#f5f0e8", fontSize:13, fontFamily:"Georgia,serif" }} />
     </div>
   );
+
+  // Manutenção: bloqueia clientes (admins com ?adm=1 passam)
 
   return (
     <div style={{ background:"linear-gradient(145deg,#1a1410,#120e0c)", border:`1px solid ${form.active ? "#3a2a1a" : "#2a1f1f"}`, borderRadius:12, overflow:"hidden" }}>
@@ -2280,6 +2312,8 @@ using (bucket_id = 'wines');`;
   const copyStorageSQL = () => { navigator.clipboard?.writeText(SQL_STORAGE); showToast("SQL do Storage copiado!"); };
   const card = { background: "linear-gradient(145deg,#1a1410,#120e0c)", border: "1px solid #2a1f1f", borderRadius: 10, padding: 22, marginBottom: 18 };
   const inputStyle = { width: "100%", background: "#0c0a09", border: "1px solid #2a1f1f", borderRadius: 4, padding: "10px 12px", color: "#f5f0e8", fontSize: 12, fontFamily: "monospace" };
+  // Manutenção: bloqueia clientes (admins com ?adm=1 passam)
+
   return (
     <div style={{ maxWidth: 660 }}>
       <h1 style={{ fontSize: 21, marginBottom: 5 }}>🗄️ Banco de Dados — Supabase</h1>
@@ -2368,6 +2402,8 @@ const CuponsPanel = ({ customCoupons, saveCoupons, showToast }) => {
     saveCoupons({ ...customCoupons, [code]: { pct: +newPct, limit: newLimit ? +newLimit : null, uses: 0 } });
     setNewCode(""); setNewPct(""); setNewLimit(""); showToast(`Cupom ${code} criado! ✅`);
   };
+  // Manutenção: bloqueia clientes (admins com ?adm=1 passam)
+
   return (
     <div style={{ maxWidth: 600 }}>
       <h1 style={{ fontSize: 24, marginBottom: 5 }}>🎁 Gerenciar Cupons</h1>
@@ -2448,6 +2484,8 @@ const FreteAPICard = ({ logo, title, color, badge, badgeColor, storageKey, field
     try { localStorage.removeItem(storageKey); } catch {}
     showToast(`🗑 Credenciais ${title} removidas.`, "error");
   };
+  // Manutenção: bloqueia clientes (admins com ?adm=1 passam)
+
   return (
     <div style={{ background:"linear-gradient(145deg,#1a1410,#120e0c)", border:`1px solid ${open ? color+"55" : "#2a1f1f"}`, borderRadius:10, padding:20, marginBottom:16, transition:"border .2s" }}>
       <div style={{ display:"flex", alignItems:"center", gap:14, cursor:"pointer" }} onClick={() => setOpen(p=>!p)}>
@@ -2511,6 +2549,8 @@ const FretePanel = ({ freteConfig, saveFreteConfig, showToast }) => {
     setEditando(nova.id);
     setForm({ ...nova, base: "0", minValue: "" });
   };
+  // Manutenção: bloqueia clientes (admins com ?adm=1 passam)
+
   return (
     <div style={{ maxWidth: 700 }}>
       <h1 style={{ fontSize: 24, marginBottom: 5 }}>🚚 Configurar Frete</h1>
@@ -2600,7 +2640,7 @@ const SocialPanel = ({ showToast }) => {
       badge: "Meta Business", badgeColor: "#1877f2",
       storageKey: "v9_meta_token",
       apis: [
-        { nome: "Meta Pixel (Facebook Pixel)", desc: "Rastreia conversões, adicionar ao carrinho e pageviews para campanhas no Facebook/Instagram Ads.", link: "https://developers.facebook.com/docs/facebook-pixel", tipo: "Script — sem token de API", codigo: `<!-- Insira no <head> do site -->\n<script>\n  !function(f,b,e,v,n,t,s) {\n    if(f.fbq) return; n=f.fbq=function() {\n      n.callMethod ? n.callMethod.apply(n,arguments) : n.queue.push(arguments)\n    };\n    if(!f._fbq) f._fbq=n; n.push=n; n.loaded=!0; n.version='2.0';\n    n.queue=[]; t=b.createElement(e); t.async=!0;\n    t.src=v; s=b.getElementsByTagName(e)[0];\n    s.parentNode.insertBefore(t,s)\n  }(window, document,'script','https://connect.facebook.net/en_US/fbevents.js');\n  fbq('init', 'SEU_PIXEL_ID');  // Troque pelo seu Pixel ID\n  fbq('track', 'PageView');\n</script>` },
+        { nome: "Meta Pixel (Facebook Pixel)", desc: "Rastreia conversões, adicionar ao carrinho e pageviews para campanhas no Facebook/Instagram Ads.", link: "https://developers.facebook.com/docs/facebook-pixel", tipo: "Script — sem token de API", codigo: "<!-- Insira no <head> do site -->\n<script>\n  !function(f,b,e,v,n,t,s) {\n    if(f.fbq) return; n=f.fbq=function() {\n      n.callMethod ? n.callMethod.apply(n,arguments) : n.queue.push(arguments)\n    };\n    if(!f._fbq) f._fbq=n; n.push=n; n.loaded=!0; n.version='2.0';\n    n.queue=[]; t=b.createElement(e); t.async=!0;\n    t.src=v; s=b.getElementsByTagName(e)[0];\n    s.parentNode.insertBefore(t,s)\n  }(window, document,'script','https://connect.facebook.net/en_US/fbevents.js');\n  fbq('init', 'SEU_PIXEL_ID');\n  fbq('track', 'PageView');\n<" + "/script>" },
         { nome: "Conversions API (CAPI)", desc: "Envia eventos de servidor para o Meta, complementando o Pixel para maior precisão em conversões.", link: "https://developers.facebook.com/docs/marketing-api/conversions-api", tipo: "REST API — Token de acesso necessário", codigo: `// Evento de compra via Conversions API\nconst resp = await fetch(\n  "https://graph.facebook.com/v19.0/SEU_PIXEL_ID/events",\n  {\n    method: "POST",\n    headers: { "Content-Type": "application/json" },\n    body: JSON.stringify({\n      data: [{\n        event_name: "Purchase",\n        event_time: Math.floor(Date.now() / 1000),\n        user_data: { em: hashSHA256(email), ph: hashSHA256(telefone) },\n        custom_data: { value: totalPedido, currency: "BRL" }\n      }],\n      access_token: "SEU_TOKEN_META"\n    })\n  }\n);` },
         { nome: "Meta Graph API — Catálogo de Produtos", desc: "Sobe o catálogo de vinhos automaticamente para usar em anúncios dinâmicos no Facebook e Instagram.", link: "https://developers.facebook.com/docs/marketing-api/catalog", tipo: "REST API — Token com permissão catalog_management", codigo: `// Enviar produto ao catálogo Meta\nconst resp = await fetch(\n  "https://graph.facebook.com/v19.0/SEU_CATALOG_ID/products",\n  {\n    method: "POST",\n    headers: { "Content-Type": "application/json" },\n    body: JSON.stringify({\n      access_token: "SEU_TOKEN_META",\n      requests: [{\n        method: "CREATE",\n        data: {\n          id: wine.id,\n          name: wine.name,\n          price: (wine.price * 100) + " BRL",  // em centavos\n          url: "https://vinhos9.com.br/vinho/" + wine.id,\n          image_url: wine.image,\n          availability: wine.stock > 0 ? "in stock" : "out of stock",\n          condition: "new",\n          description: wine.description\n        }\n      }]\n    })\n  }\n);` },
       ],
@@ -2632,7 +2672,7 @@ const SocialPanel = ({ showToast }) => {
       badge: "TikTok API", badgeColor: "#ff0050",
       storageKey: "v9_tiktok_token",
       apis: [
-        { nome: "TikTok Pixel", desc: "Rastreia eventos de visita, carrinho e compra para otimização de campanhas de anúncios no TikTok Ads.", link: "https://ads.tiktok.com/marketing_api/docs?id=1739583652957185", tipo: "Script — sem token de API", codigo: `<!-- Insira no <head> do site -->\n<script>\n  !function (w, d, t) {\n    w.TiktokAnalyticsObject=t; var ttq=w[t]=w[t]||[];\n    ttq.methods=["page","track","identify","instances"];\n    ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}\n    for(var i=0;i<ttq.methods.length;i++) ttq.setAndDefer(ttq,ttq.methods[i]);\n    var s=d.createElement("script"); s.type="text/javascript"; s.async=!0;\n    s.src="https://analytics.tiktok.com/i18n/pixel/events.js?sdkid=SEU_PIXEL_ID";\n    d.getElementsByTagName("head")[0].appendChild(s);\n  }(window, document, 'ttq');\n  ttq.page();\n</script>` },
+        { nome: "TikTok Pixel", desc: "Rastreia eventos de visita, carrinho e compra para otimização de campanhas de anúncios no TikTok Ads.", link: "https://ads.tiktok.com/marketing_api/docs?id=1739583652957185", tipo: "Script — sem token de API", codigo: "<!-- Insira no <head> do site -->\n<script>\n  !function (w, d, t) {\n    w.TiktokAnalyticsObject=t; var ttq=w[t]=w[t]||[];\n    ttq.methods=[\"page\",\"track\",\"identify\",\"instances\"];\n    ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}\n    for(var i=0;i<ttq.methods.length;i++) ttq.setAndDefer(ttq,ttq.methods[i]);\n    var s=d.createElement(\"script\"); s.type=\"text/javascript\"; s.async=!0;\n    s.src=\"https://analytics.tiktok.com/i18n/pixel/events.js?sdkid=SEU_PIXEL_ID\";\n    d.getElementsByTagName(\"head\")[0].appendChild(s);\n  }(window, document, 'ttq');\n  ttq.page();\n<" + "/script>" },
         { nome: "TikTok Events API (Server-Side)", desc: "Versão server-side do Pixel, mais precisa. Envia eventos de compra diretamente do backend.", link: "https://ads.tiktok.com/marketing_api/docs?id=1741601162187777", tipo: "REST API — Access Token TikTok for Business", codigo: `// Evento de compra — TikTok Events API\nconst resp = await fetch(\n  "https://business-api.tiktok.com/open_api/v1.3/event/track/",\n  {\n    method: "POST",\n    headers: {\n      "Content-Type": "application/json",\n      "Access-Token": "SEU_ACCESS_TOKEN"\n    },\n    body: JSON.stringify({\n      pixel_code: "SEU_PIXEL_CODE",\n      event: "CompletePayment",\n      timestamp: new Date().toISOString(),\n      properties: {\n        currency: "BRL",\n        value: totalPedido,\n        contents: [{ content_id: wine.id, content_type: "product", quantity: 1 }]\n      }\n    })\n  }\n);` },
         { nome: "TikTok Catalog API — Produtos", desc: "Sincroniza o catálogo de vinhos com o TikTok Shop para exibição em vídeos e anúncios de shopping.", link: "https://ads.tiktok.com/marketing_api/docs?id=1740306481704961", tipo: "REST API — Access Token com permissão de catálogo", codigo: `// Adicionar produto ao catálogo TikTok\nconst resp = await fetch(\n  "https://business-api.tiktok.com/open_api/v1.3/catalog/product/upload/",\n  {\n    method: "POST",\n    headers: {\n      "Content-Type": "application/json",\n      "Access-Token": "SEU_ACCESS_TOKEN"\n    },\n    body: JSON.stringify({\n      catalog_id: "SEU_CATALOG_ID",\n      products: [{\n        sku_id: wine.id,\n        title: wine.name,\n        description: wine.description,\n        availability: "in stock",\n        condition: "new",\n        price: wine.price + " BRL",\n        link: "https://vinhos9.com.br/vinho/" + wine.id,\n        image_link: wine.image\n      }]\n    })\n  }\n);` },
       ],
@@ -2664,6 +2704,8 @@ const SocialPanel = ({ showToast }) => {
     try { localStorage.removeItem(rede.storageKey); } catch {}
     showToast(`🗑 Configurações ${rede.title} removidas.`, "error");
   };
+
+  // Manutenção: bloqueia clientes (admins com ?adm=1 passam)
 
   return (
     <div style={{ maxWidth: 760 }}>
@@ -2817,6 +2859,8 @@ const CSVPanel = ({ importCSV, showToast }) => {
     setAiCSV(""); setAiImg(null);
   };
 
+  // Manutenção: bloqueia clientes (admins com ?adm=1 passam)
+
   return (
     <div style={{ maxWidth: 620 }}>
       <h1 style={{ fontSize: 21, marginBottom: 5 }}>📥 Importar Produtos via CSV</h1>
@@ -2958,6 +3002,8 @@ const GaleriaPanel = ({ supaCfg, wines, setWines, supaFetch, showToast }) => {
 
   const fmtSize = (b) => b > 1024*1024 ? `${(b/1024/1024).toFixed(1)} MB` : `${Math.round(b/1024)} KB`;
 
+  // Manutenção: bloqueia clientes (admins com ?adm=1 passam)
+
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
@@ -3097,6 +3143,8 @@ const EmailPanel = ({ showToast }) => {
     </div>
   );
 
+  // Manutenção: bloqueia clientes (admins com ?adm=1 passam)
+
   return (
     <div style={{ maxWidth: 700 }}>
       <h1 style={{ fontSize: 24, marginBottom: 5 }}>📧 Configurar E-mails Automáticos</h1>
@@ -3174,7 +3222,28 @@ const EmailPanel = ({ showToast }) => {
   );
 };
 
-const SegurancaPanel = ({ showToast }) => {
+// ── Modo Manutenção ──────────────────────────────────────────────────────────
+const MAINTENANCE_KEY = "v9_maintenance";
+const getMaintenance = () => { try { return JSON.parse(localStorage.getItem(MAINTENANCE_KEY) || "{}"); } catch { return {}; } };
+const MaintenancePage = () => {
+  const cfg = getMaintenance();
+  // Manutenção: bloqueia clientes (admins com ?adm=1 passam)
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#0a0605", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Georgia,serif" }}>
+      <div style={{ textAlign: "center", padding: "40px 24px", maxWidth: 500 }}>
+        <div style={{ fontSize: 64, marginBottom: 20 }}>🍷</div>
+        <div style={{ fontSize: 9, letterSpacing: 4, color: "#8b6060", textTransform: "uppercase", marginBottom: 10 }}>Vinhos9</div>
+        <h1 style={{ fontSize: 26, color: "#f5f0e8", marginBottom: 12, lineHeight: 1.3 }}>{cfg.titulo || "Site em Manutenção"}</h1>
+        <p style={{ fontSize: 14, color: "#7a6a6a", lineHeight: 1.7, marginBottom: 24 }}>{cfg.mensagem || "Estamos realizando melhorias para você. Voltamos em breve!"}</p>
+        {cfg.previsao && <div style={{ display: "inline-block", background: "rgba(139,44,44,.2)", border: "1px solid #3a1f1f", borderRadius: 8, padding: "8px 20px", fontSize: 12, color: "#e8b4b4" }}>⏱ Previsão: {cfg.previsao}</div>}
+        {cfg.email && <div style={{ marginTop: 16, fontSize: 11, color: "#5a4a4a" }}>Dúvidas? <a href={`mailto:${cfg.email}`} style={{ color: "#e8b4b4" }}>{cfg.email}</a></div>}
+      </div>
+    </div>
+  );
+};
+
+const SegurancaPanel = ({ showToast, maintenanceCfg = {}, saveMaintenance = () => {} }) => {
   const [newUser, setNewUser] = useState("");
   const [newPass, setNewPass] = useState("");
   const [newPassConfirm, setNewPassConfirm] = useState("");
@@ -3242,6 +3311,47 @@ const SegurancaPanel = ({ showToast }) => {
           </div>
         ))}
       </div>
+
+      {/* ── Modo Manutenção ── */}
+      <div style={{ background: "linear-gradient(145deg,#1a1410,#120e0c)", border: `2px solid ${maintenanceCfg.ativo ? "#f97316" : "#2a1f1f"}`, borderRadius: 10, padding: 24, marginTop: 18, transition: "border .3s" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
+          <div>
+            <div style={{ fontSize: 11, letterSpacing: 2, color: "#a09080", textTransform: "uppercase", marginBottom: 4 }}>🚧 Modo Manutenção</div>
+            <div style={{ fontSize: 12, color: "#5a4a4a", lineHeight: 1.5 }}>Exibe tela de manutenção para todos os visitantes. Você (ADM logado) continua acessando normalmente.</div>
+          </div>
+          {/* Toggle */}
+          <div onClick={() => { const novo = { ...maintenanceCfg, ativo: !maintenanceCfg.ativo }; saveMaintenance(novo); showToast(novo.ativo ? "🚧 Modo manutenção ATIVADO!" : "✅ Site voltou ao ar!"); }}
+            style={{ width: 52, height: 28, borderRadius: 99, background: maintenanceCfg.ativo ? "#f97316" : "#2a1f1f", border: `1px solid ${maintenanceCfg.ativo ? "#f97316" : "#3a2f2f"}`, cursor: "pointer", position: "relative", transition: "all .3s", flexShrink: 0 }}>
+            <div style={{ position: "absolute", top: 3, left: maintenanceCfg.ativo ? 26 : 3, width: 20, height: 20, borderRadius: "50%", background: maintenanceCfg.ativo ? "#fff" : "#5a4a4a", transition: "left .3s" }} />
+          </div>
+        </div>
+        {maintenanceCfg.ativo && (
+          <div style={{ background: "rgba(249,115,22,.08)", border: "1px solid rgba(249,115,22,.25)", borderRadius: 6, padding: "8px 12px", marginBottom: 16, fontSize: 11, color: "#f97316" }}>
+            ⚠️ Site em manutenção — clientes não conseguem acessar agora.
+          </div>
+        )}
+        <div style={{ display: "grid", gap: 12 }}>
+          {[
+            { key: "titulo", label: "Título da página", placeholder: "Site em Manutenção" },
+            { key: "mensagem", label: "Mensagem para o cliente", placeholder: "Estamos realizando melhorias. Voltamos em breve!" },
+            { key: "previsao", label: "Previsão de retorno (ex: 14/06 às 18h)", placeholder: "Hoje às 18h" },
+            { key: "email", label: "E-mail de contato (opcional)", placeholder: "contato@vinhos9.com.br" },
+          ].map(f => (
+            <div key={f.key}>
+              <label style={{ display: "block", fontSize: 9, letterSpacing: 2, color: "#5a4a4a", textTransform: "uppercase", marginBottom: 5 }}>{f.label}</label>
+              <input
+                value={maintenanceCfg[f.key] || ""}
+                onChange={e => saveMaintenance({ ...maintenanceCfg, [f.key]: e.target.value })}
+                placeholder={f.placeholder}
+                style={{ width: "100%", background: "#0c0a09", border: "1px solid #2a1f1f", borderRadius: 4, padding: "9px 11px", color: "#f5f0e8", fontSize: 13, fontFamily: "Georgia,serif", boxSizing: "border-box" }}
+              />
+            </div>
+          ))}
+        </div>
+        <div style={{ marginTop: 14, fontSize: 10, color: "#3a2f2f", lineHeight: 1.6 }}>
+          💡 Para acessar o site em manutenção como admin, acesse: <span style={{ color: "#5a4a4a", fontFamily: "monospace" }}>vinhos9.com.br?adm=1</span>
+        </div>
+      </div>
     </div>
   );
 };
@@ -3286,6 +3396,8 @@ export default function App() {
   const [clientPanelOpen, setClientPanelOpen] = useState(false);
   const [clientPanelTab, setClientPanelTab] = useState("orders");
   const openClientPanel = (tab = "orders") => { setClientPanelTab(tab); setClientPanelOpen(true); };
+  const [maintenanceCfg, setMaintenanceCfg] = useState(getMaintenance);
+  const saveMaintenance = (cfg) => { setMaintenanceCfg(cfg); try { localStorage.setItem(MAINTENANCE_KEY, JSON.stringify(cfg)); } catch {} };
   const [showPass, setShowPass] = useState(false);
   const [editWine, setEditWine] = useState(null);
   // 🎁 Cupons — agora editáveis
@@ -3348,29 +3460,46 @@ export default function App() {
   });
   const savePayDescontos = (d) => { setPayDescontos(d); try { localStorage.setItem("v9_pay_desc", JSON.stringify(d)); } catch {} };
 
-  // 🔗 URL persistence — lê ?produto=ID e abre o produto correto (funciona com Supabase async)
-  const pendingProductId = useRef((() => { try { return new URLSearchParams(window.location.search).get("produto"); } catch { return null; } })());
+  // 🔗 URL persistence — lê ?produto=ID ou ?vinho=slug e abre o produto correto (funciona com Supabase async)
+  const pendingProductId = useRef((() => { try { const p = new URLSearchParams(window.location.search); return p.get("produto") || p.get("vinho"); } catch { return null; } })());
+
+  // Gera slug amigável a partir do nome do vinho
+  const toSlug = (wine) => {
+    const name = (wine.name || "").toLowerCase()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    return `${name}-${wine.id}`;
+  };
+  const slugToId = (slug) => {
+    const parts = slug.split("-");
+    return parts[parts.length - 1];
+  };
 
   useEffect(() => {
     if (!pendingProductId.current || wines.length === 0) return;
     const pid = pendingProductId.current;
-    const found = wines.find(w => String(w.id) === pid);
+    // suporta tanto ID puro quanto slug-com-id no final
+    const idFromSlug = slugToId(pid);
+    const found = wines.find(w => String(w.id) === pid || String(w.id) === idFromSlug);
     if (found) {
       setSelectedWine(found);
       setPage("store");
-      pendingProductId.current = null; // só abre uma vez
+      pendingProductId.current = null;
     }
   }, [wines]);
 
   useEffect(() => {
     if (selectedWine) {
       const url = new URL(window.location.href);
-      url.searchParams.set("produto", selectedWine.id);
+      url.searchParams.delete("produto");
+      url.searchParams.set("vinho", toSlug(selectedWine));
       window.history.replaceState(null, "", url.toString());
+      document.title = `${selectedWine.name} | Vinhos9`;
       trackVisit(selectedWine.id);
     } else {
       const url = new URL(window.location.href);
       url.searchParams.delete("produto");
+      url.searchParams.delete("vinho");
       window.history.replaceState(null, "", url.toString());
     }
   }, [selectedWine]);
@@ -4180,6 +4309,9 @@ self.addEventListener("fetch", e => {
   })() : [];
 
 
+
+  // Manutenção: bloqueia clientes (admins logados passam; ?adm=1 permite acesso emergencial)
+  if (maintenanceCfg?.ativo && !isLoggedIn && !new URLSearchParams(window.location.search).get("adm")) return <MaintenancePage />;
 
   return (
     <div style={{ fontFamily: "'Georgia','Times New Roman',serif", minHeight: "100vh", background: "#0c0a09", color: "#f5f0e8" }}>
@@ -6064,7 +6196,7 @@ self.addEventListener("fetch", e => {
             {adminTab === "supabase" && <SupabasePanel supaCfg={supaCfg} supaConnected={supaConnected} supaStatus={supaStatus} testSupaConnection={testSupaConnection} loadFromSupabase={loadFromSupabase} showToast={showToast} />}
 
             {adminTab === "emails" && <EmailPanel showToast={showToast} />}
-            {adminTab === "seguranca" && <SegurancaPanel showToast={showToast} />}
+            {adminTab === "seguranca" && <SegurancaPanel showToast={showToast} maintenanceCfg={maintenanceCfg} saveMaintenance={saveMaintenance} />}
 
             {/* 🖼 Galeria de Imagens */}
             {adminTab === "imagens" && <GaleriaPanel supaCfg={supaCfg} wines={wines} setWines={setWines} supaFetch={supaFetch} showToast={showToast} />}
