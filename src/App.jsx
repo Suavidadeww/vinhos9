@@ -991,7 +991,7 @@ const ClientAccountPanel = ({ wines, addToCart, setSelectedWine, setPage, onClos
           <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: "32px 28px" }}>
             <button onClick={onClose} style={{ position: "absolute", top: 18, right: 18, background: "none", border: "none", color: "#5a4a4a", cursor: "pointer", fontSize: 18 }}>✕</button>
             <div style={{ textAlign: "center", marginBottom: 32 }}>
-              <div style={{ fontSize: 36, marginBottom: 10 }}>🍷</div>
+              <img src={LOGO_URI} alt="Vinhos9" style={{ height: 72, width: "auto", margin: "0 auto 10px", display: "block" }} />
               <div style={{ fontSize: 9, letterSpacing: 4, color: "#8b6060", textTransform: "uppercase", marginBottom: 6 }}>Vinhos9</div>
               <h2 style={{ fontSize: 21, color: "#e8b4b4" }}>Bem-vindo de volta</h2>
               <p style={{ fontSize: 12, color: "#5a4a4a", marginTop: 5 }}>Acesse sua conta para ver pedidos e favoritos</p>
@@ -3409,6 +3409,17 @@ self.addEventListener("fetch", e => {
         /* ── DESKTOP: base font maior ── */
         body,html{font-size:18px}
         p,span,div,li,td,th,label,input,select,textarea,button{font-size:inherit}
+        @media(min-width:769px){
+          body,html{font-size:20px}
+          .wine-card .wc-name{font-size:16px!important}
+          .wine-card .wc-price{font-size:20px!important}
+          .wine-card .wc-desc{font-size:13px!important}
+          .wine-card .wc-origin{font-size:13px!important}
+          .btn-red{font-size:16px!important}
+          .btn-ghost{font-size:16px!important}
+          .nav-link{font-size:17px!important}
+          input,select,textarea{font-size:16px!important}
+        }
 
         ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:#1a1410}::-webkit-scrollbar-thumb{background:#8b2c2c;border-radius:3px}
         @keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
@@ -5445,7 +5456,10 @@ self.addEventListener("fetch", e => {
 
               {/* Marca */}
               <div>
-                <div style={{ fontSize: 24, fontWeight: "bold", letterSpacing: 2, color: "#e8b4b4", marginBottom: 12 }}>🍷 VINHOS9</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                  <img src={LOGO_URI} alt="Vinhos9" style={{ height: 44, width: "auto" }} />
+                  <div style={{ fontSize: 24, fontWeight: "bold", letterSpacing: 2, color: "#e8b4b4" }}>VINHOS9</div>
+                </div>
                 <p style={{ fontSize: 15, color: "#b0a090", lineHeight: 1.9, marginBottom: 14 }}>Vinhos importados selecionados das melhores regiões vinícolas do mundo.</p>
               </div>
 
