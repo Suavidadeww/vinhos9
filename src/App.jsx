@@ -2484,6 +2484,270 @@ const FretePanel = ({ freteConfig, saveFreteConfig, showToast }) => {
         </div>
       ))}
       <button onClick={addOpcao} style={{ marginTop: 8, padding: "10px 22px", background: "#1a1410", border: "1px solid #3a2f2f", borderRadius: 4, color: "#e8b4b4", cursor: "pointer", fontSize: 13, fontFamily: "Georgia,serif" }}>+ Adicionar opção de frete</button>
+
+      {/* ── APIs de Frete ── */}
+      <div style={{ marginTop: 36 }}>
+        <div style={{ fontSize: 11, letterSpacing: 2, color: "#a09080", textTransform: "uppercase", marginBottom: 4 }}>🔌 Integração com APIs de Frete</div>
+        <p style={{ fontSize: 12, color: "#5a4a4a", marginBottom: 20, lineHeight: 1.7 }}>
+          Para calcular frete em tempo real, integre uma das APIs abaixo. Salve seus tokens aqui para referência — a implementação no checkout utilizará esses dados.
+        </p>
+
+        {/* Melhor Envio */}
+        <FreteAPICard
+          logo="📦" title="Melhor Envio" color="#f97316"
+          badge="Recomendado" badgeColor="#f97316"
+          storageKey="v9_melhorenvio_token"
+          fields={[{ key: "token", label: "Token de Acesso (Bearer)", placeholder: "eyJ0eXAiOiJKV1QiLCJhbGci..." }]}
+          docs="https://docs.melhorenvio.com.br"
+          descricao="Agrega PAC, Sedex, Jadlog, Azul Cargo e outros em uma única requisição. Retorna cotações com prazo e preço em tempo real."
+          exemplo={`// Exemplo de cotação — Melhor Envio\nconst resp = await fetch("https://melhorenvio.com.br/api/v2/me/shipment/calculate", {\n  method: "POST",\n  headers: {\n    "Accept": "application/json",\n    "Content-Type": "application/json",\n    "Authorization": "Bearer SEU_TOKEN",\n    "User-Agent": "Vinhos9 (contato@vinhos9.com.br)"\n  },\n  body: JSON.stringify({\n    from: { postal_code: "01310100" },  // CEP da loja\n    to:   { postal_code: cepCliente },\n    package: { height:30, width:30, length:30, weight:1.5 },\n    options: { receipt:false, own_hand:false },\n    services: ["1","2","3","7","8"]  // PAC, Sedex, Mini...\n  })\n});\nconst cotacoes = await resp.json();`}
+          showToast={showToast}
+        />
+
+        {/* Correios */}
+        <FreteAPICard
+          logo="🏛️" title="Correios — API Oficial" color="#fbbf24"
+          badge="Oficial" badgeColor="#4ade80"
+          storageKey="v9_correios_token"
+          fields={[
+            { key: "usuario", label: "Usuário / CNPJ do contrato", placeholder: "12345678000199" },
+            { key: "senha",   label: "Senha do contrato Correios", placeholder: "••••••••" },
+            { key: "codigoEmpresa", label: "Código da empresa (opcional)", placeholder: "0000000000" },
+          ]}
+          docs="https://www.correios.com.br/atendimento/developers"
+          descricao="API REST dos Correios (novo portal). Requer contrato corporativo ativo. Retorna PAC, Sedex e variantes com preço e prazo oficial."
+          exemplo={`// Exemplo — Correios API REST v2\n// 1. Autenticar\nconst auth = await fetch("https://api.correios.com.br/token/v1/autentica/cartaopostagem", {\n  method: "POST",\n  headers: {\n    "Authorization": "Basic " + btoa(usuario + ":" + senha),\n    "Content-Type": "application/json"\n  }\n});\nconst { token } = await auth.json();\n\n// 2. Calcular frete\nconst preco = await fetch(\n  "https://api.correios.com.br/preco/v1/nacional/04510?" +\n  new URLSearchParams({ cepOrigem:"01310100", cepDestino:cepCliente, peso:"1500", comprimento:"30", altura:"15", largura:"20" }),\n  { headers: { "Authorization": "Bearer " + token } }\n);\nconst resultado = await preco.json();`}
+          showToast={showToast}
+        />
+      </div>
+    </div>
+  );
+};
+
+// ── Painel Redes Sociais ─────────────────────────────────────────────────────
+const SocialPanel = ({ showToast }) => {
+  const redes = [
+    {
+      key: "facebook",
+      logo: "🔵", title: "Facebook & Instagram (Meta)", color: "#1877f2",
+      badge: "Meta Business", badgeColor: "#1877f2",
+      storageKey: "v9_meta_token",
+      apis: [
+        { nome: "Meta Pixel (Facebook Pixel)", desc: "Rastreia conversões, adicionar ao carrinho e pageviews para campanhas no Facebook/Instagram Ads.", link: "https://developers.facebook.com/docs/facebook-pixel", tipo: "Script — sem token de API", codigo: `<!-- Insira no <head> do site -->\n<script>\n  !function(f,b,e,v,n,t,s) {\n    if(f.fbq) return; n=f.fbq=function() {\n      n.callMethod ? n.callMethod.apply(n,arguments) : n.queue.push(arguments)\n    };\n    if(!f._fbq) f._fbq=n; n.push=n; n.loaded=!0; n.version='2.0';\n    n.queue=[]; t=b.createElement(e); t.async=!0;\n    t.src=v; s=b.getElementsByTagName(e)[0];\n    s.parentNode.insertBefore(t,s)\n  }(window, document,'script','https://connect.facebook.net/en_US/fbevents.js');\n  fbq('init', 'SEU_PIXEL_ID');  // Troque pelo seu Pixel ID\n  fbq('track', 'PageView');\n</script>` },
+        { nome: "Conversions API (CAPI)", desc: "Envia eventos de servidor para o Meta, complementando o Pixel para maior precisão em conversões.", link: "https://developers.facebook.com/docs/marketing-api/conversions-api", tipo: "REST API — Token de acesso necessário", codigo: `// Evento de compra via Conversions API\nconst resp = await fetch(\n  "https://graph.facebook.com/v19.0/SEU_PIXEL_ID/events",\n  {\n    method: "POST",\n    headers: { "Content-Type": "application/json" },\n    body: JSON.stringify({\n      data: [{\n        event_name: "Purchase",\n        event_time: Math.floor(Date.now() / 1000),\n        user_data: { em: hashSHA256(email), ph: hashSHA256(telefone) },\n        custom_data: { value: totalPedido, currency: "BRL" }\n      }],\n      access_token: "SEU_TOKEN_META"\n    })\n  }\n);` },
+        { nome: "Meta Graph API — Catálogo de Produtos", desc: "Sobe o catálogo de vinhos automaticamente para usar em anúncios dinâmicos no Facebook e Instagram.", link: "https://developers.facebook.com/docs/marketing-api/catalog", tipo: "REST API — Token com permissão catalog_management", codigo: `// Enviar produto ao catálogo Meta\nconst resp = await fetch(\n  "https://graph.facebook.com/v19.0/SEU_CATALOG_ID/products",\n  {\n    method: "POST",\n    headers: { "Content-Type": "application/json" },\n    body: JSON.stringify({\n      access_token: "SEU_TOKEN_META",\n      requests: [{\n        method: "CREATE",\n        data: {\n          id: wine.id,\n          name: wine.name,\n          price: (wine.price * 100) + " BRL",  // em centavos\n          url: "https://vinhos9.com.br/vinho/" + wine.id,\n          image_url: wine.image,\n          availability: wine.stock > 0 ? "in stock" : "out of stock",\n          condition: "new",\n          description: wine.description\n        }\n      }]\n    })\n  }\n);` },
+      ],
+      fields: [
+        { key: "pixelId", label: "Pixel ID", placeholder: "123456789012345" },
+        { key: "accessToken", label: "Token de Acesso (Meta Business)", placeholder: "EAABsbCS..." },
+        { key: "catalogId", label: "ID do Catálogo (opcional)", placeholder: "987654321" },
+      ],
+      dica: "Crie o Pixel e os tokens no Meta Business Suite → Configurações → Origens de dados."
+    },
+    {
+      key: "instagram",
+      logo: "📸", title: "Instagram Shopping", color: "#e1306c",
+      badge: "Meta Commerce", badgeColor: "#e1306c",
+      storageKey: "v9_instagram_token",
+      apis: [
+        { nome: "Instagram Basic Display API", desc: "Exibe seu feed de fotos do Instagram dentro do site, mostrando posts reais da loja.", link: "https://developers.facebook.com/docs/instagram-basic-display-api", tipo: "OAuth — Token de usuário Instagram", codigo: `// Buscar últimas fotos do Instagram\nconst resp = await fetch(\n  "https://graph.instagram.com/me/media?" +\n  "fields=id,caption,media_type,media_url,thumbnail_url,permalink&" +\n  "access_token=" + SEU_TOKEN_INSTAGRAM\n);\nconst { data } = await resp.json();\n// data = array de posts com url, legenda, link` },
+        { nome: "Instagram Graph API — Publicação", desc: "Publica posts e reels automaticamente no Instagram da loja a partir do painel ADM.", link: "https://developers.facebook.com/docs/instagram-api/guides/content-publishing", tipo: "REST API — Token com permissão instagram_content_publish", codigo: `// Publicar imagem no Instagram\n// Passo 1: criar container\nconst container = await fetch(\n  "https://graph.facebook.com/v19.0/SEU_IG_USER_ID/media",\n  {\n    method: "POST",\n    body: new URLSearchParams({\n      image_url: "https://seusite.com/imagem.jpg",\n      caption: "🍷 Novo vinho disponível! #vinho #wine",\n      access_token: SEU_TOKEN\n    })\n  }\n);\nconst { id } = await container.json();\n\n// Passo 2: publicar\nawait fetch(\n  "https://graph.facebook.com/v19.0/SEU_IG_USER_ID/media_publish",\n  { method: "POST", body: new URLSearchParams({ creation_id: id, access_token: SEU_TOKEN }) }\n);` },
+      ],
+      fields: [
+        { key: "igUserId", label: "Instagram User ID (numérico)", placeholder: "17841400123456789" },
+        { key: "accessToken", label: "Token de Acesso Instagram", placeholder: "IGQVJWe..." },
+      ],
+      dica: "Use o Facebook for Developers → Criar App → Tipo: Consumer → adicionar Instagram Basic Display."
+    },
+    {
+      key: "tiktok",
+      logo: "🎵", title: "TikTok for Business", color: "#ff0050",
+      badge: "TikTok API", badgeColor: "#ff0050",
+      storageKey: "v9_tiktok_token",
+      apis: [
+        { nome: "TikTok Pixel", desc: "Rastreia eventos de visita, carrinho e compra para otimização de campanhas de anúncios no TikTok Ads.", link: "https://ads.tiktok.com/marketing_api/docs?id=1739583652957185", tipo: "Script — sem token de API", codigo: `<!-- Insira no <head> do site -->\n<script>\n  !function (w, d, t) {\n    w.TiktokAnalyticsObject=t; var ttq=w[t]=w[t]||[];\n    ttq.methods=["page","track","identify","instances"];\n    ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}\n    for(var i=0;i<ttq.methods.length;i++) ttq.setAndDefer(ttq,ttq.methods[i]);\n    var s=d.createElement("script"); s.type="text/javascript"; s.async=!0;\n    s.src="https://analytics.tiktok.com/i18n/pixel/events.js?sdkid=SEU_PIXEL_ID";\n    d.getElementsByTagName("head")[0].appendChild(s);\n  }(window, document, 'ttq');\n  ttq.page();\n</script>` },
+        { nome: "TikTok Events API (Server-Side)", desc: "Versão server-side do Pixel, mais precisa. Envia eventos de compra diretamente do backend.", link: "https://ads.tiktok.com/marketing_api/docs?id=1741601162187777", tipo: "REST API — Access Token TikTok for Business", codigo: `// Evento de compra — TikTok Events API\nconst resp = await fetch(\n  "https://business-api.tiktok.com/open_api/v1.3/event/track/",\n  {\n    method: "POST",\n    headers: {\n      "Content-Type": "application/json",\n      "Access-Token": "SEU_ACCESS_TOKEN"\n    },\n    body: JSON.stringify({\n      pixel_code: "SEU_PIXEL_CODE",\n      event: "CompletePayment",\n      timestamp: new Date().toISOString(),\n      properties: {\n        currency: "BRL",\n        value: totalPedido,\n        contents: [{ content_id: wine.id, content_type: "product", quantity: 1 }]\n      }\n    })\n  }\n);` },
+        { nome: "TikTok Catalog API — Produtos", desc: "Sincroniza o catálogo de vinhos com o TikTok Shop para exibição em vídeos e anúncios de shopping.", link: "https://ads.tiktok.com/marketing_api/docs?id=1740306481704961", tipo: "REST API — Access Token com permissão de catálogo", codigo: `// Adicionar produto ao catálogo TikTok\nconst resp = await fetch(\n  "https://business-api.tiktok.com/open_api/v1.3/catalog/product/upload/",\n  {\n    method: "POST",\n    headers: {\n      "Content-Type": "application/json",\n      "Access-Token": "SEU_ACCESS_TOKEN"\n    },\n    body: JSON.stringify({\n      catalog_id: "SEU_CATALOG_ID",\n      products: [{\n        sku_id: wine.id,\n        title: wine.name,\n        description: wine.description,\n        availability: "in stock",\n        condition: "new",\n        price: wine.price + " BRL",\n        link: "https://vinhos9.com.br/vinho/" + wine.id,\n        image_link: wine.image\n      }]\n    })\n  }\n);` },
+      ],
+      fields: [
+        { key: "pixelCode", label: "Pixel Code (TikTok Pixel ID)", placeholder: "C0XXXXXXXXXXXXXXXX" },
+        { key: "accessToken", label: "Access Token (TikTok for Business)", placeholder: "xxxxxxxxxxxxxxxx..." },
+        { key: "advertiser", label: "Advertiser ID", placeholder: "123456789012345" },
+      ],
+      dica: "Acesse ads.tiktok.com → Ativos → Eventos → Criar Pixel para obter seu Pixel Code e token."
+    },
+  ];
+
+  const [openNet, setOpenNet] = React.useState(null);
+  const [vals, setVals] = React.useState(() => {
+    const out = {};
+    redes.forEach(r => {
+      try { out[r.key] = JSON.parse(localStorage.getItem(r.storageKey) || "{}"); } catch { out[r.key] = {}; }
+    });
+    return out;
+  });
+  const [showCode, setShowCode] = React.useState({});
+
+  const salvar = (rede) => {
+    try { localStorage.setItem(rede.storageKey, JSON.stringify(vals[rede.key] || {})); } catch {}
+    showToast(`✅ Configurações ${rede.title} salvas!`);
+  };
+  const limpar = (rede) => {
+    setVals(p => ({ ...p, [rede.key]: {} }));
+    try { localStorage.removeItem(rede.storageKey); } catch {}
+    showToast(`🗑 Configurações ${rede.title} removidas.`, "error");
+  };
+
+  return (
+    <div style={{ maxWidth: 760 }}>
+      <h1 style={{ fontSize: 24, marginBottom: 5 }}>📱 Redes Sociais & APIs</h1>
+      <p style={{ color: "#7a6a6a", fontSize: 13, marginBottom: 8, lineHeight: 1.7 }}>
+        Configure integrações com Facebook, Instagram e TikTok. Salve seus tokens e IDs aqui para referência — use os exemplos de código para implementar no checkout e páginas do site.
+      </p>
+      <div style={{ background: "linear-gradient(135deg,#0e1200,#0a0e00)", border: "1px solid #2a3a1a", borderRadius: 8, padding: "10px 16px", marginBottom: 24, fontSize: 12, color: "#a0b060", lineHeight: 1.7 }}>
+        💡 <strong>Dica:</strong> As APIs abaixo são integrações externas. Os tokens e IDs salvos aqui ficam apenas no seu navegador (localStorage). Para produção, mova as chaves secretas para variáveis de ambiente no servidor.
+      </div>
+
+      {redes.map(rede => {
+        const isSaved = Object.values(vals[rede.key] || {}).some(v => v && v.trim().length > 4);
+        const isOpen = openNet === rede.key;
+        return (
+          <div key={rede.key} style={{ background: "linear-gradient(145deg,#1a1410,#120e0c)", border: `1px solid ${isOpen ? rede.color + "55" : "#2a1f1f"}`, borderRadius: 12, padding: 22, marginBottom: 18, transition: "border .25s" }}>
+            {/* Header */}
+            <div style={{ display: "flex", alignItems: "center", gap: 14, cursor: "pointer" }} onClick={() => setOpenNet(isOpen ? null : rede.key)}>
+              <div style={{ fontSize: 30 }}>{rede.logo}</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 16, color: "#f5f0e8", fontWeight: "bold" }}>{rede.title}</span>
+                  <span style={{ fontSize: 9, letterSpacing: 1, background: rede.badgeColor + "22", color: rede.badgeColor, border: `1px solid ${rede.badgeColor}44`, borderRadius: 99, padding: "2px 8px", textTransform: "uppercase" }}>{rede.badge}</span>
+                  {isSaved && <span style={{ fontSize: 9, letterSpacing: 1, background: "#4ade8022", color: "#4ade80", border: "1px solid #4ade8044", borderRadius: 99, padding: "2px 8px" }}>✅ CONFIGURADO</span>}
+                </div>
+                <div style={{ fontSize: 11, color: "#5a4a4a", marginTop: 2 }}>{rede.apis.length} APIs disponíveis · clique para expandir</div>
+              </div>
+              <span style={{ color: "#5a4a4a", fontSize: 18 }}>{isOpen ? "▲" : "▼"}</span>
+            </div>
+
+            {isOpen && (
+              <div style={{ marginTop: 20, borderTop: "1px solid #2a1f1f", paddingTop: 20 }}>
+
+                {/* APIs disponíveis */}
+                <div style={{ fontSize: 11, letterSpacing: 2, color: "#a09080", textTransform: "uppercase", marginBottom: 14 }}>APIs disponíveis</div>
+                {rede.apis.map((api, i) => (
+                  <div key={i} style={{ background: "#0c0a09", border: "1px solid #2a1f1f", borderRadius: 8, padding: 16, marginBottom: 12 }}>
+                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, color: "#f5f0e8", fontWeight: "bold", marginBottom: 3 }}>{api.nome}</div>
+                        <div style={{ fontSize: 11, color: "#7a6a6a", marginBottom: 6, lineHeight: 1.6 }}>{api.desc}</div>
+                        <div style={{ fontSize: 10, color: rede.color, background: rede.color + "11", border: `1px solid ${rede.color}22`, borderRadius: 4, display: "inline-block", padding: "2px 8px" }}>{api.tipo}</div>
+                      </div>
+                      <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                        <button
+                          onClick={() => setShowCode(p => ({ ...p, [rede.key + i]: !p[rede.key + i] }))}
+                          style={{ padding: "5px 12px", background: "none", border: "1px solid #3a2f2f", borderRadius: 4, color: "#9a8a8a", cursor: "pointer", fontSize: 11, fontFamily: "Georgia,serif" }}>
+                          {showCode[rede.key + i] ? "▲ Código" : "▶ Ver código"}
+                        </button>
+                        <a href={api.link} target="_blank" rel="noreferrer"
+                          style={{ padding: "5px 12px", background: "none", border: `1px solid ${rede.color}44`, borderRadius: 4, color: rede.color, cursor: "pointer", fontSize: 11, fontFamily: "Georgia,serif", textDecoration: "none" }}>
+                          📖 Docs ↗
+                        </a>
+                      </div>
+                    </div>
+                    {showCode[rede.key + i] && (
+                      <pre style={{ marginTop: 12, background: "#070605", border: "1px solid #1a1310", borderRadius: 6, padding: 14, fontSize: 10, color: "#a09080", overflowX: "auto", lineHeight: 1.7, fontFamily: "monospace", whiteSpace: "pre-wrap", wordBreak: "break-all" }}>
+                        {api.codigo}
+                      </pre>
+                    )}
+                  </div>
+                ))}
+
+                {/* Campos de configuração */}
+                <div style={{ fontSize: 11, letterSpacing: 2, color: "#a09080", textTransform: "uppercase", marginBottom: 14, marginTop: 22 }}>Salvar credenciais</div>
+                <div style={{ background: "linear-gradient(135deg,#0a0e1a,#080a12)", border: "1px solid #1a1f3a", borderRadius: 8, padding: "10px 14px", marginBottom: 16, fontSize: 11, color: "#6a80b0", lineHeight: 1.7 }}>
+                  🔒 {rede.dica}
+                </div>
+                {rede.fields.map(f => (
+                  <div key={f.key} style={{ marginBottom: 14 }}>
+                    <label style={{ display: "block", fontSize: 11, color: "#5a4a4a", letterSpacing: 1, textTransform: "uppercase", marginBottom: 5 }}>{f.label}</label>
+                    <input
+                      value={(vals[rede.key] || {})[f.key] || ""}
+                      onChange={e => setVals(p => ({ ...p, [rede.key]: { ...(p[rede.key] || {}), [f.key]: e.target.value } }))}
+                      placeholder={f.placeholder}
+                      style={{ width: "100%", background: "#0c0a09", border: "1px solid #2a1f1f", borderRadius: 4, padding: "9px 11px", color: "#f5f0e8", fontSize: 13, fontFamily: "monospace", boxSizing: "border-box" }}
+                    />
+                  </div>
+                ))}
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <button onClick={() => salvar(rede)} style={{ padding: "9px 20px", background: "#8b2c2c", border: "none", borderRadius: 4, color: "#fff", cursor: "pointer", fontSize: 12, fontFamily: "Georgia,serif" }}>💾 Salvar</button>
+                  {isSaved && <button onClick={() => limpar(rede)} style={{ padding: "9px 14px", background: "none", border: "1px solid #3a1f1f", borderRadius: 4, color: "#ef4444", cursor: "pointer", fontSize: 12, fontFamily: "Georgia,serif" }}>🗑 Limpar</button>}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+// ── Sub-componente card de API de frete ──────────────────────────────────────
+const FreteAPICard = ({ logo, title, color, badge, badgeColor, storageKey, fields, docs, descricao, exemplo, showToast }) => {
+  const [vals, setVals] = React.useState(() => {
+    try { return JSON.parse(localStorage.getItem(storageKey) || "{}"); } catch { return {}; }
+  });
+  const [open, setOpen] = React.useState(false);
+  const [showEx, setShowEx] = React.useState(false);
+  const saved = Object.values(vals).some(v => v && v.trim().length > 4);
+  const salvar = () => {
+    try { localStorage.setItem(storageKey, JSON.stringify(vals)); } catch {}
+    showToast(`✅ Credenciais ${title} salvas!`);
+  };
+  const limpar = () => {
+    setVals({});
+    try { localStorage.removeItem(storageKey); } catch {}
+    showToast(`🗑 Credenciais ${title} removidas.`, "error");
+  };
+  return (
+    <div style={{ background:"linear-gradient(145deg,#1a1410,#120e0c)", border:`1px solid ${open ? color+"55" : "#2a1f1f"}`, borderRadius:10, padding:20, marginBottom:16, transition:"border .2s" }}>
+      <div style={{ display:"flex", alignItems:"center", gap:14, cursor:"pointer" }} onClick={() => setOpen(p=>!p)}>
+        <div style={{ fontSize:28 }}>{logo}</div>
+        <div style={{ flex:1 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+            <span style={{ fontSize:16, color:"#f5f0e8", fontWeight:"bold" }}>{title}</span>
+            <span style={{ fontSize:9, letterSpacing:1, background:badgeColor+"22", color:badgeColor, border:`1px solid ${badgeColor}44`, borderRadius:99, padding:"2px 8px", textTransform:"uppercase" }}>{badge}</span>
+            {saved && <span style={{ fontSize:9, letterSpacing:1, background:"#4ade8022", color:"#4ade80", border:"1px solid #4ade8044", borderRadius:99, padding:"2px 8px" }}>✅ CONFIGURADO</span>}
+          </div>
+          <div style={{ fontSize:11, color:"#5a4a4a", marginTop:3 }}>{descricao}</div>
+        </div>
+        <span style={{ color:"#5a4a4a", fontSize:18 }}>{open ? "▲" : "▼"}</span>
+      </div>
+      {open && (
+        <div style={{ marginTop:18, borderTop:"1px solid #2a1f1f", paddingTop:18 }}>
+          {fields.map(f => (
+            <div key={f.key} style={{ marginBottom:14 }}>
+              <label style={{ display:"block", fontSize:11, color:"#5a4a4a", letterSpacing:1, textTransform:"uppercase", marginBottom:5 }}>{f.label}</label>
+              <input
+                value={vals[f.key] || ""}
+                onChange={e => setVals(p => ({ ...p, [f.key]: e.target.value }))}
+                placeholder={f.placeholder}
+                style={{ width:"100%", background:"#0c0a09", border:"1px solid #2a1f1f", borderRadius:4, padding:"9px 11px", color:"#f5f0e8", fontSize:13, fontFamily:"monospace", boxSizing:"border-box" }}
+              />
+            </div>
+          ))}
+          <div style={{ display:"flex", gap:10, flexWrap:"wrap", marginBottom:16 }}>
+            <button onClick={salvar} style={{ padding:"8px 18px", background:"#8b2c2c", border:"none", borderRadius:4, color:"#fff", cursor:"pointer", fontSize:12, fontFamily:"Georgia,serif" }}>💾 Salvar credenciais</button>
+            {saved && <button onClick={limpar} style={{ padding:"8px 14px", background:"none", border:"1px solid #3a1f1f", borderRadius:4, color:"#ef4444", cursor:"pointer", fontSize:12, fontFamily:"Georgia,serif" }}>🗑 Limpar</button>}
+            <a href={docs} target="_blank" rel="noreferrer" style={{ padding:"8px 14px", background:"none", border:`1px solid ${color}44`, borderRadius:4, color:color, cursor:"pointer", fontSize:12, fontFamily:"Georgia,serif", textDecoration:"none" }}>📖 Documentação oficial ↗</a>
+          </div>
+          <button onClick={() => setShowEx(p=>!p)} style={{ background:"none", border:"none", color:"#5a4a4a", cursor:"pointer", fontSize:11, padding:0, fontFamily:"monospace", marginBottom: showEx ? 10 : 0 }}>
+            {showEx ? "▲ Ocultar" : "▶ Ver"} exemplo de código
+          </button>
+          {showEx && (
+            <pre style={{ background:"#0a0807", border:"1px solid #1a1310", borderRadius:6, padding:14, fontSize:11, color:"#a09080", overflowX:"auto", lineHeight:1.7, fontFamily:"monospace", whiteSpace:"pre-wrap", wordBreak:"break-all" }}>
+              {exemplo}
+            </pre>
+          )}
+        </div>
+      )}
     </div>
   );
 };
@@ -4558,6 +4822,16 @@ self.addEventListener("fetch", e => {
                     </div>
                   )}
                 </div>
+                {/* Parcelamento 3x */}
+                {(() => { const preco = selectedWine.promoPrice || selectedWine.price; return preco >= 399 ? (
+                  <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12, background:"linear-gradient(135deg,#0e1a0e,#0a1408)", border:"1px solid #1e3a1e", borderRadius:8, padding:"10px 14px" }}>
+                    <span style={{ fontSize:20 }}>💳</span>
+                    <div>
+                      <div style={{ fontSize:13, color:"#4ade80", fontWeight:"bold" }}>3x de {fmt(preco/3)} sem juros no cartão</div>
+                      <div style={{ fontSize:10, color:"#3a6a3a", marginTop:2 }}>Parcelamento disponível para pedidos acima de R$ 399,00</div>
+                    </div>
+                  </div>
+                ) : null; })()}
                 {/* Low stock */}
                 {selectedWine.stock <= 3 && <div style={{ marginBottom: 14 }}><LowStockBadge stock={selectedWine.stock} /></div>}
                 {/* Botões ação */}
@@ -5228,7 +5502,7 @@ self.addEventListener("fetch", e => {
               <div style={{ fontSize: 12, color: "#e8b4b4" }}>Administração</div>
             </div>
             <div style={{ flex: 1, overflowX: "auto", overflowY: "auto", display: "flex", flexDirection: "column" }} className="adm-tabs-wrap">
-            {[["dashboard","📊","Dashboard"],["wines","🍷","Vinhos"],["add","➕","Cadastrar"],["csv","📥","Importar CSV"],["banners","🎨","Banners"],["promos","🏷","Promoções"],["cupons","🎁","Cupons"],["frete","🚚","Frete"],["imagens","🖼","Galeria"],["orders","📦","Pedidos"],["reviews","⭐","Avaliações"],["emails","📧","E-mails"],["pagamento","💳","Pagamento"],["supabase","🗄️","Banco de Dados"],["seguranca","🔐","Segurança"]].map(([tab, icon, label]) => (
+            {[["dashboard","📊","Dashboard"],["wines","🍷","Vinhos"],["add","➕","Cadastrar"],["csv","📥","Importar CSV"],["banners","🎨","Banners"],["promos","🏷","Promoções"],["cupons","🎁","Cupons"],["frete","🚚","Frete"],["social","📱","Redes Sociais"],["imagens","🖼","Galeria"],["orders","📦","Pedidos"],["reviews","⭐","Avaliações"],["emails","📧","E-mails"],["pagamento","💳","Pagamento"],["supabase","🗄️","Banco de Dados"],["seguranca","🔐","Segurança"]].map(([tab, icon, label]) => (
               <button key={tab} className="adm-tab" onClick={() => setAdminTab(tab)} style={{ width: "100%", padding: "12px 18px", display: "flex", alignItems: "center", gap: 9, background: adminTab === tab ? "rgba(139,44,44,.3)" : "transparent", border: "none", color: adminTab === tab ? "#e8b4b4" : "#7a6a6a", cursor: "pointer", fontSize: 12, fontFamily: "Georgia,serif", textAlign: "left", borderLeft: adminTab === tab ? "3px solid #8b2c2c" : "3px solid transparent", transition: "all .2s" }}>
                 {icon} {label}
                 {tab === "promos" && promoWines.length > 0 && <span style={{ background: "#b45309", color: "#fef3c7", fontSize: 9, padding: "1px 6px", borderRadius: 10, marginLeft: "auto" }}>{promoWines.length}</span>}
@@ -5656,6 +5930,9 @@ self.addEventListener("fetch", e => {
 
             {/* 🚚 Frete */}
             {adminTab === "frete" && <FretePanel freteConfig={freteConfig} saveFreteConfig={saveFreteConfig} showToast={showToast} />}
+
+            {/* 📱 Redes Sociais */}
+            {adminTab === "social" && <SocialPanel showToast={showToast} />}
 
             {/* 💳 Gateway de Pagamento */}
             {adminTab === "pagamento" && (
