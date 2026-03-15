@@ -4780,7 +4780,7 @@ self.addEventListener("fetch", e => {
                         "Austrália":"🇦🇺","Australia":"🇦🇺",
                         "Alemanha":"🇩🇪","Germany":"🇩🇪",
                         "Nova Zelândia":"🇳🇿","New Zealand":"🇳🇿",
-                        "Argentina":"🇦🇷","Grécia":"🇬🇷","Greece":"🇬🇷",
+                        "Grécia":"🇬🇷","Greece":"🇬🇷",
                         "Hungria":"🇭🇺","Hungary":"🇭🇺","Áustria":"🇦🇹","Austria":"🇦🇹",
                         "Todos":"🌍",
                       };
