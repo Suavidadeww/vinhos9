@@ -590,7 +590,17 @@ Responda dúvidas sobre harmonização, temperatura de serviço, decantação, o
             <div style={{ marginBottom: 12 }}>
               <div style={{ fontSize: 11, color: "#5a4a4a", marginBottom: 8 }}>Perguntas frequentes:</div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                {["Com o que harmoniza?", "Qual temperatura servir?", "Precisa decantar?", "Para qual ocasião?"].map(q => (
+                {[
+                  "Com o que harmoniza?",
+                  "Qual temperatura servir?",
+                  "Precisa decantar?",
+                  "Para qual ocasião?",
+                  "É encorpado ou leve?",
+                  "Qual o sabor predominante?",
+                  "Serve para presente?",
+                  "Qual a diferença deste para outros?",
+                  "Vale o preço?",
+                ].map(q => (
                   <button key={q} onClick={() => setSomMsg(q)}
                     style={{ padding: "5px 10px", background: "rgba(139,44,44,.1)", border: "1px solid #2a1f1f", borderRadius: 14, color: "#a09080", fontSize: 11, cursor: "pointer", fontFamily: "Georgia,serif" }}>{q}</button>
                 ))}
@@ -3916,14 +3926,15 @@ self.addEventListener("fetch", e => {
           body,html{font-size:15px}
           main,aside,.adm-layout{font-size:15px}
           .wine-card .wc-name{font-size:15px!important}
-          .wine-card .wc-price{font-size:19px!important}
+          .wine-card .wc-price{font-size:20px!important}
           .wine-card .wc-desc{font-size:13px!important}
-          .btn-red,.btn-ghost{font-size:13px!important}
-          .nav-link{font-size:13px!important}
+          .btn-red,.btn-ghost{font-size:14px!important}
+          .nav-link{font-size:14px!important}
           input,select,textarea{font-size:14px!important}
-          .hero-title{font-size:38px!important}
-          h2{font-size:18px!important}
-          .adm-content h1,.adm-content h2{font-size:18px!important}
+          .hero-title{font-size:40px!important}
+          h2{font-size:19px!important}
+          h3{font-size:17px!important}
+          .adm-content h1,.adm-content h2{font-size:19px!important}
           .adm-content p,.adm-content label{font-size:13px!important}
           .adm-content input,.adm-content select,.adm-content textarea{font-size:13px!important}
           .adm-content td{font-size:13px!important}
@@ -3935,23 +3946,23 @@ self.addEventListener("fetch", e => {
           body,html{font-size:16px}
           main,aside,.adm-layout{font-size:16px}
           .wine-card .wc-name{font-size:16px!important}
-          .wine-card .wc-price{font-size:20px!important}
+          .wine-card .wc-price{font-size:22px!important}
           .wine-card .wc-desc{font-size:14px!important}
           .wine-card .wc-old-price{font-size:13px!important}
           .wine-card .wc-stock{font-size:13px!important}
           .btn-red,.btn-ghost{font-size:15px!important}
           .nav-link{font-size:15px!important}
           input,select,textarea{font-size:15px!important}
-          .hero-title{font-size:46px!important}
-          h2{font-size:20px!important}
+          .hero-title{font-size:48px!important}
+          h2{font-size:21px!important}
           h3{font-size:18px!important}
-          .adm-content h1,.adm-content h2{font-size:20px!important}
+          .adm-content h1,.adm-content h2{font-size:21px!important}
           .adm-content p{font-size:14px!important}
           .adm-content label{font-size:13px!important}
           .adm-content input,.adm-content select,.adm-content textarea{font-size:14px!important}
           .adm-content td{font-size:14px!important}
           .adm-sidebar button{font-size:14px!important}
-          .detail-flex h1{font-size:24px!important}
+          .detail-flex h1{font-size:25px!important}
           .detail-flex p{font-size:14px!important}
         }
 
@@ -3960,23 +3971,23 @@ self.addEventListener("fetch", e => {
           body,html{font-size:17px}
           main,aside,.adm-layout{font-size:17px}
           .wine-card .wc-name{font-size:17px!important}
-          .wine-card .wc-price{font-size:22px!important}
-          .wine-card .wc-desc{font-size:14px!important}
+          .wine-card .wc-price{font-size:24px!important}
+          .wine-card .wc-desc{font-size:15px!important}
           .wine-card .wc-old-price{font-size:13px!important}
           .wine-card .wc-stock{font-size:13px!important}
           .btn-red,.btn-ghost{font-size:16px!important}
           .nav-link{font-size:16px!important}
           input,select,textarea{font-size:16px!important}
-          .hero-title{font-size:54px!important}
-          h2{font-size:22px!important}
+          .hero-title{font-size:56px!important}
+          h2{font-size:23px!important}
           h3{font-size:20px!important}
-          .adm-content h1,.adm-content h2{font-size:22px!important}
+          .adm-content h1,.adm-content h2{font-size:23px!important}
           .adm-content p{font-size:15px!important}
           .adm-content label{font-size:14px!important}
           .adm-content input,.adm-content select,.adm-content textarea{font-size:15px!important}
-          .adm-content td{font-size:14px!important}
+          .adm-content td{font-size:15px!important}
           .adm-sidebar button{font-size:14px!important}
-          .detail-flex h1{font-size:28px!important}
+          .detail-flex h1{font-size:29px!important}
           .detail-flex p{font-size:16px!important}
         }
 
@@ -4026,6 +4037,9 @@ self.addEventListener("fetch", e => {
           :root{--txt-dim:#b0a0a0;--txt-muted:#a09090;--txt-faint:#888080}
           body,html{font-size:15px}
           main,aside,.adm-layout{font-size:14px}
+
+          /* Descrição dos cards menor no mobile para não poluir */
+          .wine-card .wc-desc{font-size:10px!important;line-height:1.4!important;-webkit-line-clamp:2;display:-webkit-box;-webkit-box-orient:vertical;overflow:hidden}
 
           /* Clarear todas as cores de texto escuras no mobile */
           [style*="color: #5a4a4a"],[style*="color:#5a4a4a"]{color:#9a8a8a!important}
@@ -4389,9 +4403,9 @@ self.addEventListener("fetch", e => {
                 const activePrice = wine.promoPrice || wine.price;
                 const isWishlisted = wishlist.includes(wine.id);
                 return (
-                  <div key={wine.id} className="wine-card" onClick={() => { setSelectedWine(wine); window.scrollTo({ top: 0, behavior: "smooth" }); }} style={{ background: "linear-gradient(145deg,#1a1410,#120e0c)", border: "1px solid #2a1f1f", borderRadius: 12, overflow: "hidden", animation: `fadeIn .4s ease ${i * .05}s both`, position: "relative" }}>
+                  <div key={wine.id} className="wine-card" onClick={() => { setSelectedWine(wine); window.scrollTo({ top: 0, behavior: "smooth" }); }} style={{ background: "linear-gradient(145deg,#1a1410,#120e0c)", border: "1px solid #2a1f1f", borderRadius: 12, overflow: "hidden", animation: `fadeIn .4s ease ${i * .05}s both`, position: "relative", display: "flex", flexDirection: "column" }}>
                     {/* Imagem quadrada 1:1 */}
-                    <div style={{ width: "100%", aspectRatio: "1/1", position: "relative", overflow: "hidden" }}>
+                    <div style={{ width: "100%", aspectRatio: "1/1", position: "relative", overflow: "hidden", flexShrink: 0 }}>
                       <WineThumb wine={wine} height="100%" />
                       <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom,transparent 55%,rgba(12,10,9,.8))" }} />
                       {wine.promoPrice && <span style={{ position: "absolute", top: 10, left: 10, background: "#b45309", color: "#fef3c7", fontSize: 9, padding: "2px 8px", borderRadius: 3, fontWeight: "bold", letterSpacing: 1 }}>-{discountPct(wine.price, wine.promoPrice)}%</span>}
@@ -4405,20 +4419,25 @@ self.addEventListener("fetch", e => {
                         <div style={{ fontSize: 9, color: "rgba(245,240,232,.6)" }}>{wine.origin} · {wine.year}</div>
                       </div>
                     </div>
-                    <div style={{ padding: "14px 14px 16px" }}>
+                    <div style={{ padding: "14px 14px 16px", display: "flex", flexDirection: "column", flex: 1 }}>
                       <h3 className="wc-name" style={{ fontSize: 14, color: "#f5f0e8", marginBottom: 4 }}>{wine.name}</h3>
                       <div style={{ marginBottom: 6 }}><Stars rating={wine.rating} /></div>
-                      <p className="wc-desc" style={{ fontSize: 11, color: "#7a6a6a", lineHeight: 1.55, marginBottom: 8, minHeight: 34 }}>{wine.description?.slice(0, 120)}{wine.description?.length > 120 ? "…" : ""}</p>
+                      <p className="wc-desc" style={{ fontSize: 11, color: "#7a6a6a", lineHeight: 1.55, marginBottom: 8, flex: 1 }}>{wine.description?.slice(0, 120)}{wine.description?.length > 120 ? "…" : ""}</p>
                       {/* Low stock badge */}
                       {wine.stock <= 3 && <div style={{ marginBottom: 8 }}><LowStockBadge stock={wine.stock} /></div>}
                       <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 4 }}>
                         <span className="wc-price" style={{ fontSize: 17, color: wine.promoPrice ? "#fbbf24" : "#e8b4b4", fontWeight: "bold" }}>{fmt(activePrice)}</span>
                         {wine.promoPrice && <span className="wc-old-price" style={{ fontSize: 10, color: "#5a4a4a", textDecoration: "line-through" }}>{fmt(wine.price)}</span>}
                       </div>
-                      {wine.promoPrice && <div style={{ marginBottom: 8 }}><PromoTimer wineId={wine.id} compact /></div>}
+                      {wine.promoPrice && (
+                        <div style={{ marginBottom: 6 }}>
+                          <PromoTimer wineId={wine.id} compact />
+                          <div style={{ fontSize: 10, color: "#ef4444", marginTop: 3, fontWeight: "bold", letterSpacing: .5 }}>⚠️ Oferta por tempo limitado!</div>
+                        </div>
+                      )}
                       <div className="wc-stock" style={{ fontSize: 9, color: "#5a4a4a", marginBottom: 12 }}>{wine.stock > 0 ? `${wine.stock} em estoque` : ""}</div>
                       <button className="btn-red" onClick={(e) => { e.stopPropagation(); addToCart(wine); }} disabled={wine.stock === 0}
-                        style={{ width: "100%", padding: "10px", borderRadius: 4, fontSize: 11, letterSpacing: 1, background: wine.stock === 0 ? "#2a1f1f" : "#8b2c2c", color: wine.stock === 0 ? "#5a4a4a" : "#fff", cursor: wine.stock === 0 ? "not-allowed" : "pointer" }}>
+                        style={{ width: "100%", padding: "10px", borderRadius: 4, fontSize: 11, letterSpacing: 1, background: wine.stock === 0 ? "#2a1f1f" : "#8b2c2c", color: wine.stock === 0 ? "#5a4a4a" : "#fff", cursor: wine.stock === 0 ? "not-allowed" : "pointer", marginTop: "auto" }}>
                         {wine.stock === 0 ? "Esgotado" : "🛒 Adicionar ao Carrinho"}
                       </button>
                     </div>
@@ -4511,8 +4530,31 @@ self.addEventListener("fetch", e => {
                     </div>
                   ) : (
                     <div>
-                      <div style={{ fontSize: 28, color: "#e8b4b4", fontWeight: "bold" }}>{fmt(selectedWine.price)}</div>
-                      <div style={{ fontSize: 9, color: "#5a4a4a", marginTop: 3 }}>{selectedWine.stock} unidades em estoque</div>
+                      <div style={{ fontSize: 28, color: "#e8b4b4", fontWeight: "bold", marginBottom: 4 }}>{fmt(selectedWine.price)}</div>
+                      <div style={{ fontSize: 9, color: "#5a4a4a", marginBottom: 0 }}>{selectedWine.stock} unidades em estoque</div>
+                    </div>
+                  )}
+                  {/* Descontos Pix / Boleto */}
+                  {(payDescontos.pix > 0 || payDescontos.boleto > 0) && (
+                    <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      {payDescontos.pix > 0 && (
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(74,222,128,.08)", border: "1px solid rgba(74,222,128,.25)", borderRadius: 6, padding: "6px 11px" }}>
+                          <span style={{ fontSize: 13 }}>⚡</span>
+                          <div>
+                            <div style={{ fontSize: 10, color: "#4ade80", fontWeight: "bold" }}>{payDescontos.pix}% OFF no Pix</div>
+                            <div style={{ fontSize: 10, color: "#4ade80" }}>{fmt((selectedWine.promoPrice || selectedWine.price) * (1 - payDescontos.pix / 100))}</div>
+                          </div>
+                        </div>
+                      )}
+                      {payDescontos.boleto > 0 && (
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(251,191,36,.08)", border: "1px solid rgba(251,191,36,.25)", borderRadius: 6, padding: "6px 11px" }}>
+                          <span style={{ fontSize: 13 }}>📄</span>
+                          <div>
+                            <div style={{ fontSize: 10, color: "#fbbf24", fontWeight: "bold" }}>{payDescontos.boleto}% OFF no Boleto</div>
+                            <div style={{ fontSize: 10, color: "#fbbf24" }}>{fmt((selectedWine.promoPrice || selectedWine.price) * (1 - payDescontos.boleto / 100))}</div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
