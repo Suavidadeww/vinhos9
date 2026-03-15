@@ -278,9 +278,12 @@ const PromoTimer = ({ wineId, compact = false }) => {
   const { h, m, s, pad, expired } = usePromoTimer(wineId);
   if (expired) return null;
   if (compact) return (
-    <div style={{ display: "flex", alignItems: "center", gap: 4, background: "rgba(180,83,9,.15)", border: "1px solid rgba(180,83,9,.4)", borderRadius: 4, padding: "2px 7px" }}>
-      <span style={{ fontSize: 9, color: "#fb923c" }}>⏰</span>
-      <span style={{ fontSize: 10, color: "#fbbf24", fontWeight: "bold", fontVariantNumeric: "tabular-nums" }}>{pad(h)}:{pad(m)}:{pad(s)}</span>
+    <div style={{ background: "rgba(180,83,9,.12)", border: "1px solid rgba(180,83,9,.35)", borderRadius: 4, padding: "4px 7px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
+        <span style={{ fontSize: 9, color: "#fb923c" }}>⏰</span>
+        <span style={{ fontSize: 10, color: "#fbbf24", fontWeight: "bold", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{pad(h)}:{pad(m)}:{pad(s)}</span>
+        <span style={{ fontSize: 9, color: "#ef4444", fontWeight: "bold", letterSpacing: .3, whiteSpace: "nowrap" }}>⚠️ Oferta limitada!</span>
+      </div>
     </div>
   );
   return (
@@ -1300,12 +1303,13 @@ const ImageBannerCarousel = ({ banners }) => {
 };
 
 // ── ClientAccountPanel ────────────────────────────────────────────────────────
-const ClientAccountPanel = ({ wines, addToCart, setSelectedWine, setPage, onClose, onOrderComplete }) => {
+const ClientAccountPanel = (props) => {
+  const { wines, addToCart, setSelectedWine, setPage, onClose, onOrderComplete } = props;
   const [authMode, setAuthMode] = useState(() => {
     try { return localStorage.getItem("v9_client") ? "loggedin" : "login"; } catch { return "login"; }
   });
-  const [tab, setTab] = useState("orders");
-  const [wishlist, setWishlist] = useState(() => { try { const s = localStorage.getItem("v9_wishlist"); return s ? JSON.parse(s) : []; } catch { return []; } });
+  const [tab, setTab] = useState(props.initialTab || "orders");
+  const [wishlist, setWishlist] = useState(() => { try { const s = localStorage.getItem("v9_wishlist_main"); return s ? JSON.parse(s) : []; } catch { return []; } });
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPwd, setLoginPwd] = useState("");
   const [showPwd, setShowPwd] = useState(false);
@@ -1791,7 +1795,7 @@ const ClientAccountPanel = ({ wines, addToCart, setSelectedWine, setPage, onClos
                     if (client?.id) delete all[client.id];
                     localStorage.setItem("v9_clients_db", JSON.stringify(all));
                     localStorage.removeItem("v9_client");
-                    localStorage.removeItem("v9_wishlist");
+                    localStorage.removeItem("v9_wishlist_main");
                   } catch {}
                   saveClient(null);
                   setAuthMode("login");
@@ -2427,6 +2431,69 @@ const CuponsPanel = ({ customCoupons, saveCoupons, showToast }) => {
   );
 };
 
+// ── Sub-componente card de API de frete ──────────────────────────────────────
+const FreteAPICard = ({ logo, title, color, badge, badgeColor, storageKey, fields, docs, descricao, exemplo, showToast }) => {
+  const [vals, setVals] = React.useState(() => {
+    try { return JSON.parse(localStorage.getItem(storageKey) || "{}"); } catch { return {}; }
+  });
+  const [open, setOpen] = React.useState(false);
+  const [showEx, setShowEx] = React.useState(false);
+  const saved = Object.values(vals).some(v => v && v.trim().length > 4);
+  const salvar = () => {
+    try { localStorage.setItem(storageKey, JSON.stringify(vals)); } catch {}
+    showToast(`✅ Credenciais ${title} salvas!`);
+  };
+  const limpar = () => {
+    setVals({});
+    try { localStorage.removeItem(storageKey); } catch {}
+    showToast(`🗑 Credenciais ${title} removidas.`, "error");
+  };
+  return (
+    <div style={{ background:"linear-gradient(145deg,#1a1410,#120e0c)", border:`1px solid ${open ? color+"55" : "#2a1f1f"}`, borderRadius:10, padding:20, marginBottom:16, transition:"border .2s" }}>
+      <div style={{ display:"flex", alignItems:"center", gap:14, cursor:"pointer" }} onClick={() => setOpen(p=>!p)}>
+        <div style={{ fontSize:28 }}>{logo}</div>
+        <div style={{ flex:1 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+            <span style={{ fontSize:16, color:"#f5f0e8", fontWeight:"bold" }}>{title}</span>
+            <span style={{ fontSize:9, letterSpacing:1, background:badgeColor+"22", color:badgeColor, border:`1px solid ${badgeColor}44`, borderRadius:99, padding:"2px 8px", textTransform:"uppercase" }}>{badge}</span>
+            {saved && <span style={{ fontSize:9, letterSpacing:1, background:"#4ade8022", color:"#4ade80", border:"1px solid #4ade8044", borderRadius:99, padding:"2px 8px" }}>✅ CONFIGURADO</span>}
+          </div>
+          <div style={{ fontSize:11, color:"#5a4a4a", marginTop:3 }}>{descricao}</div>
+        </div>
+        <span style={{ color:"#5a4a4a", fontSize:18 }}>{open ? "▲" : "▼"}</span>
+      </div>
+      {open && (
+        <div style={{ marginTop:18, borderTop:"1px solid #2a1f1f", paddingTop:18 }}>
+          {fields.map(f => (
+            <div key={f.key} style={{ marginBottom:14 }}>
+              <label style={{ display:"block", fontSize:11, color:"#5a4a4a", letterSpacing:1, textTransform:"uppercase", marginBottom:5 }}>{f.label}</label>
+              <input
+                value={vals[f.key] || ""}
+                onChange={e => setVals(p => ({ ...p, [f.key]: e.target.value }))}
+                placeholder={f.placeholder}
+                style={{ width:"100%", background:"#0c0a09", border:"1px solid #2a1f1f", borderRadius:4, padding:"9px 11px", color:"#f5f0e8", fontSize:13, fontFamily:"monospace", boxSizing:"border-box" }}
+              />
+            </div>
+          ))}
+          <div style={{ display:"flex", gap:10, flexWrap:"wrap", marginBottom:16 }}>
+            <button onClick={salvar} style={{ padding:"8px 18px", background:"#8b2c2c", border:"none", borderRadius:4, color:"#fff", cursor:"pointer", fontSize:12, fontFamily:"Georgia,serif" }}>💾 Salvar credenciais</button>
+            {saved && <button onClick={limpar} style={{ padding:"8px 14px", background:"none", border:"1px solid #3a1f1f", borderRadius:4, color:"#ef4444", cursor:"pointer", fontSize:12, fontFamily:"Georgia,serif" }}>🗑 Limpar</button>}
+            <a href={docs} target="_blank" rel="noreferrer" style={{ padding:"8px 14px", background:"none", border:`1px solid ${color}44`, borderRadius:4, color:color, cursor:"pointer", fontSize:12, fontFamily:"Georgia,serif", textDecoration:"none" }}>📖 Documentação oficial ↗</a>
+          </div>
+          <button onClick={() => setShowEx(p=>!p)} style={{ background:"none", border:"none", color:"#5a4a4a", cursor:"pointer", fontSize:11, padding:0, fontFamily:"monospace", marginBottom: showEx ? 10 : 0 }}>
+            {showEx ? "▲ Ocultar" : "▶ Ver"} exemplo de código
+          </button>
+          {showEx && (
+            <pre style={{ background:"#0a0807", border:"1px solid #1a1310", borderRadius:6, padding:14, fontSize:11, color:"#a09080", overflowX:"auto", lineHeight:1.7, fontFamily:"monospace", whiteSpace:"pre-wrap", wordBreak:"break-all" }}>
+              {exemplo}
+            </pre>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── Painel Frete ─────────────────────────────────────────────────────────────
 const FretePanel = ({ freteConfig, saveFreteConfig, showToast }) => {
   const [editando, setEditando] = useState(null);
@@ -2685,69 +2752,6 @@ const SocialPanel = ({ showToast }) => {
           </div>
         );
       })}
-    </div>
-  );
-};
-
-// ── Sub-componente card de API de frete ──────────────────────────────────────
-const FreteAPICard = ({ logo, title, color, badge, badgeColor, storageKey, fields, docs, descricao, exemplo, showToast }) => {
-  const [vals, setVals] = React.useState(() => {
-    try { return JSON.parse(localStorage.getItem(storageKey) || "{}"); } catch { return {}; }
-  });
-  const [open, setOpen] = React.useState(false);
-  const [showEx, setShowEx] = React.useState(false);
-  const saved = Object.values(vals).some(v => v && v.trim().length > 4);
-  const salvar = () => {
-    try { localStorage.setItem(storageKey, JSON.stringify(vals)); } catch {}
-    showToast(`✅ Credenciais ${title} salvas!`);
-  };
-  const limpar = () => {
-    setVals({});
-    try { localStorage.removeItem(storageKey); } catch {}
-    showToast(`🗑 Credenciais ${title} removidas.`, "error");
-  };
-  return (
-    <div style={{ background:"linear-gradient(145deg,#1a1410,#120e0c)", border:`1px solid ${open ? color+"55" : "#2a1f1f"}`, borderRadius:10, padding:20, marginBottom:16, transition:"border .2s" }}>
-      <div style={{ display:"flex", alignItems:"center", gap:14, cursor:"pointer" }} onClick={() => setOpen(p=>!p)}>
-        <div style={{ fontSize:28 }}>{logo}</div>
-        <div style={{ flex:1 }}>
-          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-            <span style={{ fontSize:16, color:"#f5f0e8", fontWeight:"bold" }}>{title}</span>
-            <span style={{ fontSize:9, letterSpacing:1, background:badgeColor+"22", color:badgeColor, border:`1px solid ${badgeColor}44`, borderRadius:99, padding:"2px 8px", textTransform:"uppercase" }}>{badge}</span>
-            {saved && <span style={{ fontSize:9, letterSpacing:1, background:"#4ade8022", color:"#4ade80", border:"1px solid #4ade8044", borderRadius:99, padding:"2px 8px" }}>✅ CONFIGURADO</span>}
-          </div>
-          <div style={{ fontSize:11, color:"#5a4a4a", marginTop:3 }}>{descricao}</div>
-        </div>
-        <span style={{ color:"#5a4a4a", fontSize:18 }}>{open ? "▲" : "▼"}</span>
-      </div>
-      {open && (
-        <div style={{ marginTop:18, borderTop:"1px solid #2a1f1f", paddingTop:18 }}>
-          {fields.map(f => (
-            <div key={f.key} style={{ marginBottom:14 }}>
-              <label style={{ display:"block", fontSize:11, color:"#5a4a4a", letterSpacing:1, textTransform:"uppercase", marginBottom:5 }}>{f.label}</label>
-              <input
-                value={vals[f.key] || ""}
-                onChange={e => setVals(p => ({ ...p, [f.key]: e.target.value }))}
-                placeholder={f.placeholder}
-                style={{ width:"100%", background:"#0c0a09", border:"1px solid #2a1f1f", borderRadius:4, padding:"9px 11px", color:"#f5f0e8", fontSize:13, fontFamily:"monospace", boxSizing:"border-box" }}
-              />
-            </div>
-          ))}
-          <div style={{ display:"flex", gap:10, flexWrap:"wrap", marginBottom:16 }}>
-            <button onClick={salvar} style={{ padding:"8px 18px", background:"#8b2c2c", border:"none", borderRadius:4, color:"#fff", cursor:"pointer", fontSize:12, fontFamily:"Georgia,serif" }}>💾 Salvar credenciais</button>
-            {saved && <button onClick={limpar} style={{ padding:"8px 14px", background:"none", border:"1px solid #3a1f1f", borderRadius:4, color:"#ef4444", cursor:"pointer", fontSize:12, fontFamily:"Georgia,serif" }}>🗑 Limpar</button>}
-            <a href={docs} target="_blank" rel="noreferrer" style={{ padding:"8px 14px", background:"none", border:`1px solid ${color}44`, borderRadius:4, color:color, cursor:"pointer", fontSize:12, fontFamily:"Georgia,serif", textDecoration:"none" }}>📖 Documentação oficial ↗</a>
-          </div>
-          <button onClick={() => setShowEx(p=>!p)} style={{ background:"none", border:"none", color:"#5a4a4a", cursor:"pointer", fontSize:11, padding:0, fontFamily:"monospace", marginBottom: showEx ? 10 : 0 }}>
-            {showEx ? "▲ Ocultar" : "▶ Ver"} exemplo de código
-          </button>
-          {showEx && (
-            <pre style={{ background:"#0a0807", border:"1px solid #1a1310", borderRadius:6, padding:14, fontSize:11, color:"#a09080", overflowX:"auto", lineHeight:1.7, fontFamily:"monospace", whiteSpace:"pre-wrap", wordBreak:"break-all" }}>
-              {exemplo}
-            </pre>
-          )}
-        </div>
-      )}
     </div>
   );
 };
@@ -3280,6 +3284,8 @@ export default function App() {
   });
   const saveHero = (h) => { setHeroBanner(h); try { localStorage.setItem("v9_hero", JSON.stringify(h)); } catch {} };
   const [clientPanelOpen, setClientPanelOpen] = useState(false);
+  const [clientPanelTab, setClientPanelTab] = useState("orders");
+  const openClientPanel = (tab = "orders") => { setClientPanelTab(tab); setClientPanelOpen(true); };
   const [showPass, setShowPass] = useState(false);
   const [editWine, setEditWine] = useState(null);
   // 🎁 Cupons — agora editáveis
@@ -4411,7 +4417,11 @@ self.addEventListener("fetch", e => {
         <nav className="desktop-nav" style={{ display: "flex", gap: 22, alignItems: "center" }}>
           <span className="nav-link" onClick={() => { setPage("store"); setSelectedWine(null); }} style={{ color: page === "store" ? "#e8b4b4" : "#a09090" }}>Loja</span>
           <span className="nav-link" onClick={() => { setPage("about"); setSelectedWine(null); }} style={{ color: page === "about" ? "#e8b4b4" : "#a09090" }}>Sobre</span>
-          <span className="nav-link" onClick={() => setClientPanelOpen(true)} style={{ color: "#a09090", display: "flex", alignItems: "center", gap: 4 }}>👤 Conta</span>
+          <span className="nav-link" onClick={() => openClientPanel("wishlist")} style={{ color: "#a09090", display: "flex", alignItems: "center", gap: 4, position: "relative" }}>
+            ❤️
+            {wishlist.length > 0 && <span style={{ background: "#8b2c2c", color: "#fff", borderRadius: "50%", width: 15, height: 15, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: "bold", position: "absolute", top: -6, right: -8 }}>{wishlist.length}</span>}
+          </span>
+          <span className="nav-link" onClick={() => openClientPanel("orders")} style={{ color: "#a09090", display: "flex", alignItems: "center", gap: 4 }}>👤 Conta</span>
           <span className="nav-link" onClick={() => setPage("admin")} style={{ color: page === "admin" ? "#e8b4b4" : "#a09090" }}>ADM</span>
           {page === "store" && (
             <button className="btn-red" onClick={() => setCartOpen(true)} style={{ padding: "7px 14px", borderRadius: 4, fontSize: 12, display: "flex", alignItems: "center", gap: 5 }}>
@@ -4440,9 +4450,13 @@ self.addEventListener("fetch", e => {
               {label}
             </div>
           ))}
-          <div onClick={() => { setClientPanelOpen(true); setMobileMenuOpen(false); }}
+          <div onClick={() => { openClientPanel("orders"); setMobileMenuOpen(false); }}
             style={{ padding: "13px 22px", cursor: "pointer", color: "#a09080", fontSize: 13, letterSpacing: 1, borderLeft: "3px solid transparent" }}>
             👤 Minha Conta
+          </div>
+          <div onClick={() => { openClientPanel("wishlist"); setMobileMenuOpen(false); }}
+            style={{ padding: "13px 22px", cursor: "pointer", color: "#e8b4b4", fontSize: 13, letterSpacing: 1, borderLeft: "3px solid transparent", display: "flex", alignItems: "center", gap: 8 }}>
+            ❤️ Favoritos {wishlist.length > 0 && <span style={{ background: "#8b2c2c", color: "#fff", borderRadius: 99, padding: "1px 7px", fontSize: 10, fontWeight: "bold" }}>{wishlist.length}</span>}
           </div>
         </div>
       )}
@@ -4696,7 +4710,7 @@ self.addEventListener("fetch", e => {
                       {wine.promoPrice && (
                         <div style={{ marginBottom: 6 }}>
                           <PromoTimer wineId={wine.id} compact />
-                          <div style={{ fontSize: 10, color: "#ef4444", marginTop: 3, fontWeight: "bold", letterSpacing: .5 }}>⚠️ Oferta por tempo limitado!</div>
+                          
                         </div>
                       )}
                       <div className="wc-stock" style={{ fontSize: 9, color: "#5a4a4a", marginBottom: 12 }}>{wine.stock > 0 ? `${wine.stock} em estoque` : ""}</div>
@@ -4719,7 +4733,7 @@ self.addEventListener("fetch", e => {
                   <div style={{ fontSize: 18, color: "#f5f0e8", fontWeight: "bold", marginBottom: 5 }}>🎁 Ganhe 200 pontos no cadastro</div>
                   <div style={{ fontSize: 13, color: "#a09080" }}>Acumule pontos a cada compra e troque por descontos exclusivos</div>
                 </div>
-                <button className="btn-red" onClick={() => setClientPanelOpen(true)}
+                <button className="btn-red" onClick={() => openClientPanel("orders")}
                   style={{ padding: "12px 26px", borderRadius: 6, fontSize: 13, letterSpacing: 1, whiteSpace: "nowrap" }}>
                   Criar Conta Grátis →
                 </button>
@@ -6084,6 +6098,7 @@ self.addEventListener("fetch", e => {
           addToCart={addToCart}
           setSelectedWine={setSelectedWine}
           setPage={setPage}
+          initialTab={clientPanelTab}
           onClose={() => setClientPanelOpen(false)}
         />
       )}
