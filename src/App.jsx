@@ -576,7 +576,7 @@ Responda dúvidas sobre harmonização, temperatura de serviço, decantação, o
         role: m.role === "assistant" ? "model" : "user",
         parts: [{ text: m.content }]
       }));
-      const res = await fetch(`/api/gemini`, {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyA0AopXkvI0DvLEF0jastSRqY2kv9Cz740`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -2837,7 +2837,7 @@ const CSVPanel = ({ importCSV, showToast }) => {
     try {
       const base64 = aiImg.split(",")[1];
       const mime = aiImg.split(";")[0].split(":")[1];
-      const resp = await fetch(`/api/gemini`, {
+      const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyA0AopXkvI0DvLEF0jastSRqY2kv9Cz740`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -3776,7 +3776,7 @@ Teor alcoólico: ${obj.alcohol || ""}
 Escreva em português brasileiro, tom elegante e convidativo, máximo 2 frases curtas (até 120 caracteres). Foque no sabor, aroma e ocasião ideal. Apenas a descrição, sem título.`;
                   const _admKey = (() => { try { return localStorage.getItem("v9_gemini_key") || "AIzaSyA0AopXkvI0DvLEF0jastSRqY2kv9Cz740"; } catch { return "AIzaSyA0AopXkvI0DvLEF0jastSRqY2kv9Cz740"; } })();
                   if (!_admKey) { showToast("Salve sua chave Google Gemini no campo acima primeiro.", "error"); setObj(p => ({ ...p, _aiLoading: false })); return; }
-                  const res = await fetch(`/api/gemini`, {
+                  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyA0AopXkvI0DvLEF0jastSRqY2kv9Cz740`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
