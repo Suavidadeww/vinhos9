@@ -566,16 +566,34 @@ Vinho atual em análise:
 - Descrição: ${wine.description || ""}
 - Preço: R$ ${wine.promoPrice || wine.price}
 Responda dúvidas sobre harmonização, temperatura de serviço, decantação, ocasiões ideais e características do vinho.`;
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
+      const apiKey = (() => { try { return localStorage.getItem("v9_gemini_key") || "AIzaSyA0AopXkvI0DvLEF0jastSRqY2kv9Cz740"; } catch { return "AIzaSyA0AopXkvI0DvLEF0jastSRqY2kv9Cz740"; } })();
+      if (!apiKey) {
+        setSomHistory([...newHistory, { role: "assistant", content: "⚠️ Chave Gemini não configurada. Acesse o ADM → Importar CSV e salve sua chave Google Gemini." }]);
+        setSomLoad(false); return;
+      }
+      // Monta histórico no formato Gemini
+      const geminiContents = newHistory.map(m => ({
+        role: m.role === "assistant" ? "model" : "user",
+        parts: [{ text: m.content }]
+      }));
+      const res = await fetch(`/api/gemini`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-api-key": "vck_7r0vHp60gZ31x1Bv7bjrNbAxo066eXsSps4w6yKjgk5N3KgRaD2FNReB", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
-        body: JSON.stringify({ model: "claude-haiku-4-5", max_tokens: 300, system, messages: newHistory })
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: system }] },
+          contents: geminiContents,
+          generationConfig: { maxOutputTokens: 300 }
+        })
       });
       const data = await res.json();
-      const reply = data.content?.[0]?.text?.trim() || "Desculpe, não consegui responder agora.";
+      if (data.error) {
+        setSomHistory([...newHistory, { role: "assistant", content: `⚠️ Erro da API: ${data.error.message}` }]);
+        setSomLoad(false); return;
+      }
+      const reply = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "Desculpe, não consegui responder agora.";
       setSomHistory([...newHistory, { role: "assistant", content: reply }]);
-    } catch {
-      setSomHistory([...newHistory, { role: "assistant", content: "Erro ao conectar. Tente novamente." }]);
+    } catch(e) {
+      setSomHistory([...newHistory, { role: "assistant", content: `Erro: ${e.message}` }]);
     }
     setSomLoad(false);
   };
@@ -2469,11 +2487,11 @@ const CuponsPanel = ({ customCoupons, saveCoupons, showToast }) => {
 
 // ── Sub-componente card de API de frete ──────────────────────────────────────
 const FreteAPICard = ({ logo, title, color, badge, badgeColor, storageKey, fields, docs, descricao, exemplo, showToast }) => {
-  const [vals, setVals] = React.useState(() => {
+  const [vals, setVals] = useState(() => {
     try { return JSON.parse(localStorage.getItem(storageKey) || "{}"); } catch { return {}; }
   });
-  const [open, setOpen] = React.useState(false);
-  const [showEx, setShowEx] = React.useState(false);
+  const [open, setOpen] = useState(false);
+  const [showEx, setShowEx] = useState(false);
   const saved = Object.values(vals).some(v => v && v.trim().length > 4);
   const salvar = () => {
     try { localStorage.setItem(storageKey, JSON.stringify(vals)); } catch {}
@@ -2685,15 +2703,15 @@ const SocialPanel = ({ showToast }) => {
     },
   ];
 
-  const [openNet, setOpenNet] = React.useState(null);
-  const [vals, setVals] = React.useState(() => {
+  const [openNet, setOpenNet] = useState(null);
+  const [vals, setVals] = useState(() => {
     const out = {};
     redes.forEach(r => {
       try { out[r.key] = JSON.parse(localStorage.getItem(r.storageKey) || "{}"); } catch { out[r.key] = {}; }
     });
     return out;
   });
-  const [showCode, setShowCode] = React.useState({});
+  const [showCode, setShowCode] = useState({});
 
   const salvar = (rede) => {
     try { localStorage.setItem(rede.storageKey, JSON.stringify(vals[rede.key] || {})); } catch {}
@@ -2805,41 +2823,35 @@ const CSVPanel = ({ importCSV, showToast }) => {
   const [aiImg, setAiImg] = useState(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiCSV, setAiCSV] = useState("");
-  const [apiKey, setApiKey] = useState(() => { try { return localStorage.getItem("v9_anthropic_key") || ""; } catch { return ""; } });
+  const [apiKey, setApiKey] = useState(() => { try { return localStorage.getItem("v9_gemini_key") || "AIzaSyA0AopXkvI0DvLEF0jastSRqY2kv9Cz740"; } catch { return "AIzaSyA0AopXkvI0DvLEF0jastSRqY2kv9Cz740"; } });
   const [showKey, setShowKey] = useState(false);
 
-  const saveKey = (k) => { setApiKey(k); try { localStorage.setItem("v9_anthropic_key", k); } catch {} };
+  const saveKey = (k) => { setApiKey(k); try { localStorage.setItem("v9_gemini_key", k); } catch {} };
 
   const gerarCSV = async () => {
     if (!aiImg) return showToast("Selecione uma imagem primeiro.", "error");
-    if (!apiKey.trim()) return showToast("Cole sua chave Anthropic API primeiro.", "error");
+    if (!apiKey.trim()) return showToast("Cole sua chave Google Gemini primeiro.", "error");
     setAiLoading(true); setAiCSV("");
     try {
       const base64 = aiImg.split(",")[1];
       const mime = aiImg.split(";")[0].split(":")[1];
-      const resp = await fetch("https://api.anthropic.com/v1/messages", {
+      const resp = await fetch(`/api/gemini`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": apiKey.trim(),
-          "anthropic-version": "2023-06-01",
-          "anthropic-dangerous-direct-browser-access": "true",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "claude-haiku-4-5",
-          max_tokens: 1000,
-          messages: [{ role: "user", content: [
-            { type: "image", source: { type: "base64", media_type: mime, data: base64 } },
-            { type: "text", text: `Analise esta imagem de vinho e retorne APENAS uma linha CSV (sem cabeçalho) com os campos nesta ordem, separados por vírgula:\nname (título SEO otimizado ex: "Vinho Tinto Chileno Reserva Cabernet Sauvignon 2021"),origin,region,year,costPrice (vazio),price (estimativa em reais),promoPrice (vazio),stock (10),category (Tinto/Branco/Espumante/Rosé),alcohol,grapes,description (descrição SEO),keywords (palavras separadas por ;),harmonization (sugestões separadas por ,),rating (4.5),sales (0)\nResponda SOMENTE a linha CSV sem explicações nem markdown.` }
-          ]}]
+          contents: [{ role: "user", parts: [
+            { inline_data: { mime_type: mime, data: base64 } },
+            { text: `Analise esta imagem de vinho e retorne APENAS uma linha CSV (sem cabeçalho) com os campos nesta ordem, separados por vírgula:\nname (título SEO otimizado ex: "Vinho Tinto Chileno Reserva Cabernet Sauvignon 2021"),origin,region,year,costPrice (vazio),price (estimativa em reais),promoPrice (vazio),stock (10),category (Tinto/Branco/Espumante/Rosé),alcohol,grapes,description (descrição SEO),keywords (palavras separadas por ;),harmonization (sugestões separadas por ,),rating (4.5),sales (0)\nResponda SOMENTE a linha CSV sem explicações nem markdown.` }
+          ]}],
+          generationConfig: { maxOutputTokens: 1000 }
         })
       });
       const data = await resp.json();
       if (data.error) { showToast(`Erro da IA: ${data.error.message}`, "error"); setAiLoading(false); return; }
-      const csv = data.content?.[0]?.text?.trim() || "";
+      const csv = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
       setAiCSV(csv);
       showToast("CSV gerado pela IA! ✅");
-    } catch (e) { showToast("Erro ao chamar a IA. Verifique sua chave API.", "error"); }
+    } catch (e) { showToast(`Erro: ${e.message}`, "error"); }
     setAiLoading(false);
   };
 
@@ -2902,14 +2914,14 @@ const CSVPanel = ({ importCSV, showToast }) => {
         {/* Chave API */}
         <div style={{ marginBottom: 16 }}>
           <label style={{ display: "block", fontSize: 11, color: "#5a4a4a", letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>
-            🔑 Chave Anthropic API — <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noreferrer" style={{ color: "#c084fc", textDecoration: "none" }}>Obter em console.anthropic.com</a>
+            🔑 Chave Google Gemini API — <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" style={{ color: "#c084fc", textDecoration: "none" }}>Obter grátis em aistudio.google.com</a>
           </label>
           <div style={{ display: "flex", gap: 8 }}>
             <input
               type={showKey ? "text" : "password"}
               value={apiKey}
               onChange={e => saveKey(e.target.value)}
-              placeholder="sk-ant-api03-..."
+              placeholder="AIzaSy..."
               style={{ flex: 1, background: "#0c0a09", border: "1px solid #3a2a4a", borderRadius: 4, padding: "9px 12px", color: "#c084fc", fontSize: 13, fontFamily: "monospace" }}
             />
             <button onClick={() => setShowKey(s => !s)} style={{ padding: "9px 14px", background: "#1a1410", border: "1px solid #3a2a4a", borderRadius: 4, color: "#7a6a6a", cursor: "pointer", fontSize: 13 }}>
@@ -3758,20 +3770,21 @@ Safra: ${obj.year || ""}
 Teor alcoólico: ${obj.alcohol || ""}
 
 Escreva em português brasileiro, tom elegante e convidativo, máximo 2 frases curtas (até 120 caracteres). Foque no sabor, aroma e ocasião ideal. Apenas a descrição, sem título.`;
-                  const res = await fetch("https://api.anthropic.com/v1/messages", {
+                  const _admKey = (() => { try { return localStorage.getItem("v9_gemini_key") || "AIzaSyA0AopXkvI0DvLEF0jastSRqY2kv9Cz740"; } catch { return "AIzaSyA0AopXkvI0DvLEF0jastSRqY2kv9Cz740"; } })();
+                  if (!_admKey) { showToast("Salve sua chave Google Gemini no campo acima primeiro.", "error"); setObj(p => ({ ...p, _aiLoading: false })); return; }
+                  const res = await fetch(`/api/gemini`, {
                     method: "POST",
-                    headers: { "Content-Type": "application/json", "x-api-key": "vck_7r0vHp60gZ31x1Bv7bjrNbAxo066eXsSps4w6yKjgk5N3KgRaD2FNReB", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
+                    headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                      model: "claude-haiku-4-5",
-                      max_tokens: 150,
-                      messages: [{ role: "user", content: prompt }]
+                      contents: [{ role: "user", parts: [{ text: prompt }] }],
+                      generationConfig: { maxOutputTokens: 150 }
                     })
                   });
                   const data = await res.json();
-                  const text = data.content?.[0]?.text?.trim() || "";
+                  const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
                   if (text) setObj(p => ({ ...p, description: text, _aiLoading: false }));
                   else { showToast("Não foi possível gerar a descrição.", "error"); setObj(p => ({ ...p, _aiLoading: false })); }
-                } catch { showToast("Erro ao conectar com a IA.", "error"); setObj(p => ({ ...p, _aiLoading: false })); }
+                } catch(e) { showToast(`Erro: ${e.message}`, "error"); setObj(p => ({ ...p, _aiLoading: false })); }
               }}
               disabled={obj._aiLoading}
               style={{ padding: "4px 10px", background: obj._aiLoading ? "#1a1410" : "rgba(139,44,44,.15)", border: "1px solid #8b2c2c", borderRadius: 4, color: obj._aiLoading ? "#5a4a4a" : "#e8b4b4", cursor: obj._aiLoading ? "not-allowed" : "pointer", fontSize: 10, fontFamily: "Georgia,serif", letterSpacing: 1, display: "flex", alignItems: "center", gap: 5, transition: "all .2s" }}>
